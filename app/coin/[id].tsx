@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
-import { Button, Card, PriceChange, Skeleton } from '@/src/ui/components/common';
+import { Button, Card, PriceChange, AppErrorBoundary, CoinDetailSkeleton } from '@/src/ui/components/common';
 import { TimeRangeSelector } from '@/src/ui/components/market';
 import { LineChart } from '@/src/ui/components/charts';
 import { useMarketStore } from '@/src/store';
@@ -51,15 +51,7 @@ export default function CoinDetailScreen() {
   };
 
   if (isLoading && !selectedCoin) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.loadingContainer}>
-          <Skeleton width="60%" height={32} />
-          <Skeleton width="40%" height={24} style={{ marginTop: 8 }} />
-          <Skeleton width="100%" height={200} radius="md" style={{ marginTop: 24 }} />
-        </View>
-      </SafeAreaView>
-    );
+    return <CoinDetailSkeleton />;
   }
 
   if (!selectedCoin) return null;
@@ -74,6 +66,7 @@ export default function CoinDetailScreen() {
   ];
 
   return (
+    <AppErrorBoundary>
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -190,6 +183,7 @@ export default function CoinDetailScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+    </AppErrorBoundary>
   );
 }
 
@@ -289,9 +283,5 @@ const styles = StyleSheet.create({
   tradeActions: {
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
-  },
-  loadingContainer: {
-    padding: spacing.lg,
-    paddingTop: spacing.xxxxl,
   },
 });
