@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography } from '@/src/ui/theme';
-import { Input, AppErrorBoundary, MarketsSkeleton, StaleBanner, ErrorBanner } from '@/src/ui/components/common';
+import { Input, ScreenErrorBoundary, MarketsSkeleton, StaleBanner, ErrorBanner } from '@/src/ui/components/common';
 import { CoinListItem } from '@/src/ui/components/market';
 import { useMarketStore } from '@/src/store';
 import type { CoinMarketData } from '@/src/types';
@@ -75,7 +75,7 @@ export default function MarketsScreen() {
   }
 
   return (
-    <AppErrorBoundary>
+    <ScreenErrorBoundary>
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.lg }]}>
         <Text style={[styles.title, { color: colors.text }]}>
@@ -112,7 +112,7 @@ export default function MarketsScreen() {
         accessibilityRole="list"
       />
     </View>
-    </AppErrorBoundary>
+    </ScreenErrorBoundary>
   );
 }
 

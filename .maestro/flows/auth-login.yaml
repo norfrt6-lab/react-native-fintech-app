@@ -1,0 +1,14 @@
+appId: com.norfrt6.fintrack
+---
+- launchApp
+- assertVisible: "Welcome"
+- tapOn: "Sign In"
+- tapOn:
+    id: "email-input"
+- inputText: "test@fintrack.app"
+- tapOn:
+    id: "password-input"
+- inputText: "password123"
+- tapOn:
+    id: "login-button"
+- assertVisible: "Dashboard"

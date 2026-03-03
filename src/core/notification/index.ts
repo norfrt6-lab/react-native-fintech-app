@@ -10,6 +10,8 @@ export {
   configureAndroidChannel,
   addNotificationReceivedListener,
   addNotificationResponseListener,
+  registerForPushNotifications,
+  getDevicePushToken,
 } from './notification-service';
 
 export {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
@@ -14,13 +15,20 @@ import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
-import { Button, Input, Card, Divider } from '@/src/ui/components/common';
-import { TradeConfirmation, TradeSuccess } from '@/src/ui/components/trade';
+import { Button, Input, Card, Divider, ScreenErrorBoundary } from '@/src/ui/components/common';
+
+const TradeConfirmation = lazy(() =>
+  import('@/src/ui/components/trade').then((m) => ({ default: m.TradeConfirmation }))
+);
+const TradeSuccess = lazy(() =>
+  import('@/src/ui/components/trade').then((m) => ({ default: m.TradeSuccess }))
+);
 import { useTradeStore, usePortfolioStore, useMarketStore, useSettingsStore, useConnectivityStore } from '@/src/store';
 import { validateTrade, executeTrade, calculateTradePreview } from '@/src/core/trade';
 import { scheduleTradeNotification } from '@/src/core/notification';
 import { formatCurrency, formatQuantity } from '@/src/lib/formatters';
 import { TRADE } from '@/src/lib/constants';
+import { getAnalytics } from '@/src/lib/analytics';
 import type { OrderSide, OrderType } from '@/src/types';
 
 const ORDER_TYPES: OrderType[] = ['market', 'limit', 'stop'];
@@ -88,18 +96,18 @@ export default function TradeScreen() {
 
     if (!isConnected) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('No Connection', 'Cannot execute trades while offline. Please check your internet connection.');
+      Alert.alert(t('trade.noConnection'), t('trade.noConnectionMessage'));
       return;
     }
 
     if (isDataStale()) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert(
-        'Stale Price Data',
-        'Market data may be outdated. Refresh prices before trading to avoid unexpected execution prices.',
+        t('trade.stalePriceData'),
+        t('trade.stalePriceMessage'),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Trade Anyway', onPress: () => proceedWithTrade() },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('trade.tradeAnyway'), onPress: () => proceedWithTrade() },
         ],
       );
       return;
@@ -127,7 +135,7 @@ export default function TradeScreen() {
 
     if (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Trade Error', error);
+      Alert.alert(t('trade.tradeError'), error);
       return;
     }
 
@@ -156,7 +164,11 @@ export default function TradeScreen() {
 
     if (!result.success || !result.order || !result.transaction) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Trade Failed', result.error ?? 'Unknown error');
+      getAnalytics().track({
+        name: 'trade_failed',
+        properties: { side: activeSide, symbol: selectedCoin.symbol, error: result.error ?? 'Unknown' },
+      });
+      Alert.alert(t('trade.tradeFailed'), result.error ?? t('common.error'));
       setIsExecuting(false);
       setShowConfirmation(false);
       return;
@@ -209,6 +221,11 @@ export default function TradeScreen() {
       );
     }
 
+    getAnalytics().track({
+      name: 'trade_executed',
+      properties: { side: activeSide, symbol: selectedCoin.symbol, amount: order.totalAmount },
+    });
+
     setIsExecuting(false);
     setShowConfirmation(false);
     setShowSuccess(true);
@@ -224,6 +241,7 @@ export default function TradeScreen() {
   };
 
   return (
+    <ScreenErrorBoundary>
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -248,6 +266,9 @@ export default function TradeScreen() {
                   borderColor: activeSide === side ? 'transparent' : colors.border,
                 },
               ]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: activeSide === side }}
+              accessibilityLabel={`${side} order`}
             >
               <Text style={[styles.sideText, { color: activeSide === side ? colors.textInverse : colors.text }]}>
                 {t(`trade.${side}`)}
@@ -268,6 +289,9 @@ export default function TradeScreen() {
                   borderColor: activeOrderType === type ? colors.primary : colors.border,
                 },
               ]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: activeOrderType === type }}
+              accessibilityLabel={`${type} order type`}
             >
               <Text style={[styles.orderTypeText, { color: activeOrderType === type ? colors.textInverse : colors.textSecondary }]}>
                 {t(`trade.${type}`)}
@@ -288,6 +312,9 @@ export default function TradeScreen() {
                   borderColor: formData.coinId === coin.id ? colors.primary : colors.border,
                 },
               ]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: formData.coinId === coin.id }}
+              accessibilityLabel={`Select ${coin.name}`}
             >
               <Image source={{ uri: coin.image }} style={styles.coinChipIcon} contentFit="cover" />
               <Text style={[styles.coinChipText, { color: formData.coinId === coin.id ? colors.textInverse : colors.text }]}>
@@ -319,7 +346,7 @@ export default function TradeScreen() {
             value={formData.amount}
             onChangeText={(val) => setFormData({ amount: val })}
             keyboardType="decimal-pad"
-            rightIcon={<Text style={[styles.maxButton, { color: colors.primary }]}>MAX</Text>}
+            rightIcon={<Text style={[styles.maxButton, { color: colors.primary }]}>{t('trade.max')}</Text>}
             onRightIconPress={handleMaxAmount}
           />
 
@@ -347,7 +374,7 @@ export default function TradeScreen() {
 
           {activeOrderType === 'stop' && (
             <Input
-              label="Stop Price"
+              label={t('trade.stopPrice')}
               placeholder={selectedCoin ? formatCurrency(selectedCoin.currentPrice) : '0.00'}
               value={formData.stopPrice}
               onChangeText={(val) => setFormData({ stopPrice: val })}
@@ -358,7 +385,7 @@ export default function TradeScreen() {
           <View style={[styles.preview, { backgroundColor: colors.backgroundSecondary }]}>
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
-                You {activeSide === 'buy' ? 'receive' : 'sell'}
+                {activeSide === 'buy' ? t('trade.youReceive') : t('trade.youSell')}
               </Text>
               <Text style={[styles.summaryValue, { color: colors.text }]}>
                 {formatQuantity(preview.quantity)} {selectedCoin?.symbol.toUpperCase() ?? ''}
@@ -393,36 +420,41 @@ export default function TradeScreen() {
       </ScrollView>
 
       {selectedCoin && (
-        <TradeConfirmation
-          visible={showConfirmation}
-          onConfirm={handleConfirmTrade}
-          onCancel={() => setShowConfirmation(false)}
-          coinName={selectedCoin.name}
-          coinSymbol={selectedCoin.symbol}
-          coinImage={selectedCoin.image}
-          side={activeSide}
-          type={activeOrderType}
-          amount={amount}
-          quantity={preview.quantity}
-          price={selectedCoin.currentPrice}
-          fee={preview.fee}
-          total={preview.total}
-          loading={isExecuting}
-        />
+        <Suspense fallback={<ActivityIndicator color={colors.primary} />}>
+          <TradeConfirmation
+            visible={showConfirmation}
+            onConfirm={handleConfirmTrade}
+            onCancel={() => setShowConfirmation(false)}
+            coinName={selectedCoin.name}
+            coinSymbol={selectedCoin.symbol}
+            coinImage={selectedCoin.image}
+            side={activeSide}
+            type={activeOrderType}
+            amount={amount}
+            quantity={preview.quantity}
+            price={selectedCoin.currentPrice}
+            fee={preview.fee}
+            total={preview.total}
+            loading={isExecuting}
+          />
+        </Suspense>
       )}
 
       {lastTrade && (
-        <TradeSuccess
-          visible={showSuccess}
-          onDone={handleSuccessDone}
-          side={lastTrade.side}
-          coinSymbol={lastTrade.symbol}
-          quantity={lastTrade.quantity}
-          totalAmount={lastTrade.totalAmount}
-          price={lastTrade.price}
-        />
+        <Suspense fallback={<ActivityIndicator color={colors.primary} />}>
+          <TradeSuccess
+            visible={showSuccess}
+            onDone={handleSuccessDone}
+            side={lastTrade.side}
+            coinSymbol={lastTrade.symbol}
+            quantity={lastTrade.quantity}
+            totalAmount={lastTrade.totalAmount}
+            price={lastTrade.price}
+          />
+        </Suspense>
       )}
     </SafeAreaView>
+    </ScreenErrorBoundary>
   );
 }
 

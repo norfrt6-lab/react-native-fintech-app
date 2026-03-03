@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography } from '@/src/ui/theme';
-import { EmptyState, Badge } from '@/src/ui/components/common';
+import { EmptyState, Badge, ScreenErrorBoundary } from '@/src/ui/components/common';
 import { useTradeStore } from '@/src/store';
 import { formatCurrency, formatDate, formatDateShort } from '@/src/lib/formatters';
 import type { Transaction } from '@/src/types';
@@ -95,13 +95,17 @@ export default function ActivityScreen() {
   );
 
   return (
+    <ScreenErrorBoundary>
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>
           {t('activity.title')}
         </Text>
         {transactions.length > 0 && (
-          <TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Export transaction history"
+          >
             <Text style={[styles.exportText, { color: colors.primary }]}>
               {t('activity.export')}
             </Text>
@@ -125,6 +129,7 @@ export default function ActivityScreen() {
         />
       )}
     </SafeAreaView>
+    </ScreenErrorBoundary>
   );
 }
 

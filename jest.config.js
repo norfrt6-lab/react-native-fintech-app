@@ -5,7 +5,7 @@ module.exports = {
       displayName: 'unit',
       testEnvironment: 'node',
       transform: {
-        '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
+        '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.test.json' }],
       },
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',
@@ -14,15 +14,16 @@ module.exports = {
       setupFiles: ['<rootDir>/tests/setup.ts'],
       testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
     },
-    // Component tests - need React Native runtime
+    // Component tests - React component rendering with @testing-library/react-native
     {
       displayName: 'component',
-      preset: 'jest-expo',
-      transformIgnorePatterns: [
-        'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*|react-native-svg|react-native-reanimated|react-native-gesture-handler|@shopify/flash-list|react-native-mmkv|zustand|immer|date-fns)',
-      ],
+      testEnvironment: 'node',
+      transform: {
+        '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.test.json' }],
+      },
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',
+        '^react-native$': '<rootDir>/tests/__mocks__/react-native.ts',
       },
       setupFiles: ['<rootDir>/tests/setup.ts'],
       testMatch: ['<rootDir>/tests/component/**/*.test.tsx'],

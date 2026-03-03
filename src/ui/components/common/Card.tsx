@@ -14,6 +14,7 @@ interface CardProps {
   elevated?: boolean;
   style?: ViewStyle;
   padding?: keyof typeof spacing;
+  accessibilityLabel?: string;
 }
 
 export function Card({
@@ -22,6 +23,7 @@ export function Card({
   elevated = false,
   style,
   padding = 'lg',
+  accessibilityLabel,
 }: CardProps) {
   const { colors } = useTheme();
 
@@ -42,6 +44,8 @@ export function Card({
         onPress={onPress}
         activeOpacity={0.7}
         style={cardStyle}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
       >
         {children}
       </TouchableOpacity>

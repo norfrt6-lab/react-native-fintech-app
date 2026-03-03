@@ -4,6 +4,8 @@ import { immer } from 'zustand/middleware/immer';
 import { zustandStorage } from '../lib/storage';
 import { marketApi } from '../api/market';
 import { logger } from '../lib/logger';
+import { getAnalytics } from '../lib/analytics';
+import { syncQueue } from '../core/sync';
 import { MARKET } from '../lib/constants';
 import type {
   CoinMarketData,
@@ -179,15 +181,22 @@ export const useMarketStore = create<MarketStore>()(
         }
       },
 
-      toggleWatchlist: (coinId) =>
+      toggleWatchlist: (coinId) => {
         set((state) => {
           const index = state.watchlist.indexOf(coinId);
           if (index >= 0) {
             state.watchlist.splice(index, 1);
+            getAnalytics().track({ name: 'watchlist_remove', properties: { coinId } });
           } else {
             state.watchlist.push(coinId);
+            getAnalytics().track({ name: 'watchlist_add', properties: { coinId } });
           }
-        }),
+        });
+        syncQueue.enqueue({
+          type: 'watchlist',
+          payload: { items: get().watchlist },
+        });
+      },
 
       isInWatchlist: (coinId) => get().watchlist.includes(coinId),
 

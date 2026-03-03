@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,9 +16,15 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
-import { Button, Card, PriceChange, AppErrorBoundary, CoinDetailSkeleton } from '@/src/ui/components/common';
-import { TimeRangeSelector, PriceAlertSheet } from '@/src/ui/components/market';
-import { LineChart } from '@/src/ui/components/charts';
+import { Button, Card, PriceChange, ScreenErrorBoundary, CoinDetailSkeleton } from '@/src/ui/components/common';
+import { TimeRangeSelector } from '@/src/ui/components/market';
+
+const LineChart = lazy(() =>
+  import('@/src/ui/components/charts').then((m) => ({ default: m.LineChart }))
+);
+const PriceAlertSheet = lazy(() =>
+  import('@/src/ui/components/market').then((m) => ({ default: m.PriceAlertSheet }))
+);
 import { useMarketStore, useNotificationStore } from '@/src/store';
 import { formatCurrency, formatNumber } from '@/src/lib/formatters';
 import { getAlertsForCoin } from '@/src/core/notification';
@@ -75,16 +82,26 @@ export default function CoinDetailScreen() {
   ];
 
   return (
-    <AppErrorBoundary>
+    <ScreenErrorBoundary>
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Text style={[styles.backText, { color: colors.primary }]}>
             {t('common.back')}
           </Text>
         </TouchableOpacity>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => setShowAlertSheet(true)} style={styles.headerButton}>
+          <TouchableOpacity
+            onPress={() => setShowAlertSheet(true)}
+            style={styles.headerButton}
+            accessibilityRole="button"
+            accessibilityLabel={activeAlertCount > 0 ? `${activeAlertCount} price alerts` : 'Set price alert'}
+          >
             <Text style={{ fontSize: 20 }}>
               {activeAlertCount > 0 ? `🔔 ${activeAlertCount}` : '🔔'}
             </Text>
@@ -92,6 +109,8 @@ export default function CoinDetailScreen() {
           <TouchableOpacity
             onPress={() => useMarketStore.getState().toggleWatchlist(selectedCoin.id)}
             style={styles.headerButton}
+            accessibilityRole="button"
+            accessibilityLabel={useMarketStore.getState().isInWatchlist(selectedCoin.id) ? `Remove ${selectedCoin.name} from watchlist` : `Add ${selectedCoin.name} to watchlist`}
           >
             <Text style={{ fontSize: 22 }}>
               {useMarketStore.getState().isInWatchlist(selectedCoin.id) ? '★' : '☆'}
@@ -133,14 +152,16 @@ export default function CoinDetailScreen() {
 
         <View style={styles.chartContainer}>
           {priceHistory.length > 1 ? (
-            <LineChart
-              data={priceHistory}
-              width={dimensions.width - spacing.lg * 2}
-              height={200}
-              positive={selectedCoin.priceChangePercentage24h >= 0}
-              showGradient
-              strokeWidth={2.5}
-            />
+            <Suspense fallback={<ActivityIndicator color={colors.primary} />}>
+              <LineChart
+                data={priceHistory}
+                width={dimensions.width - spacing.lg * 2}
+                height={200}
+                positive={selectedCoin.priceChangePercentage24h >= 0}
+                showGradient
+                strokeWidth={2.5}
+              />
+            </Suspense>
           ) : (
             <View style={[styles.chartPlaceholder, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
               <Text style={[styles.chartText, { color: colors.textTertiary }]}>Loading chart...</Text>
@@ -211,15 +232,17 @@ export default function CoinDetailScreen() {
           onPress={() => setShowAlertSheet(false)}
         >
           <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <PriceAlertSheet
-              coin={selectedCoin}
-              onClose={() => setShowAlertSheet(false)}
-            />
+            <Suspense fallback={<ActivityIndicator color={colors.primary} />}>
+              <PriceAlertSheet
+                coin={selectedCoin}
+                onClose={() => setShowAlertSheet(false)}
+              />
+            </Suspense>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
     </SafeAreaView>
-    </AppErrorBoundary>
+    </ScreenErrorBoundary>
   );
 }
 

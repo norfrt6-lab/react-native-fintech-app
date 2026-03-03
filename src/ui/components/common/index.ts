@@ -8,7 +8,7 @@ export { Skeleton } from './Skeleton';
 export { PriceChange } from './PriceChange';
 export { EmptyState } from './EmptyState';
 export { Header } from './Header';
-export { AppErrorBoundary } from './ErrorBoundary';
+export { AppErrorBoundary, ScreenErrorBoundary } from './ErrorBoundary';
 export { DashboardSkeleton, MarketsSkeleton, CoinDetailSkeleton } from './ScreenSkeleton';
 export { OfflineBanner } from './OfflineBanner';
 export { StaleBanner } from './StaleBanner';

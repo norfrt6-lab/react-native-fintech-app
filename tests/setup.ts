@@ -18,13 +18,13 @@ jest.mock('react-native-mmkv', () => ({
 }));
 
 // Mock expo-crypto with incrementing values to ensure unique IDs
-let cryptoCallCount = 0;
+let mockCryptoCallCount = 0;
 jest.mock('expo-crypto', () => ({
   getRandomBytesAsync: jest.fn().mockImplementation((size: number) => {
-    cryptoCallCount++;
+    mockCryptoCallCount++;
     const bytes = new Uint8Array(size);
     for (let i = 0; i < size; i++) {
-      bytes[i] = (cryptoCallCount * 17 + i * 13) % 256;
+      bytes[i] = (mockCryptoCallCount * 17 + i * 13) % 256;
     }
     return Promise.resolve(bytes);
   }),

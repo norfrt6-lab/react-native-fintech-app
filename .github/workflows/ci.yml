@@ -43,7 +43,7 @@ jobs:
       - name: Run TypeScript compiler
         run: npx tsc --noEmit
 
-  test:
+  test-unit:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
@@ -63,6 +63,45 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-report-unit
           path: coverage/lcov.info
           retention-days: 14
+
+  test-component:
+    name: Component Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run component tests
+        run: npx jest --selectProjects component --ci
+
+  eas-build:
+    name: EAS Build (Preview)
+    needs: [lint, typecheck, test-unit, test-component]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build preview
+        run: eas build --platform all --profile preview --non-interactive

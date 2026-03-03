@@ -1,5 +1,6 @@
 export const APP_NAME = 'FinTrack';
 export const APP_VERSION = '1.0.0';
+export const BUILD_NUMBER = '1';
 
 export const API = {
   COINGECKO_BASE_URL: 'https://api.coingecko.com/api/v3',
@@ -28,6 +29,13 @@ export const TRADE = {
   DEFAULT_SLIPPAGE: 0.5, // 0.5%
   MAX_SLIPPAGE: 5,
   FEE_PERCENTAGE: 0.1, // 0.1%
+} as const;
+
+export const RATE_LIMIT = {
+  MAX_TOKENS: 10,
+  REFILL_RATE: 1,
+  REFILL_INTERVAL_MS: 6000, // 1 token per 6 seconds (~10 req/min)
+  ACQUIRE_TIMEOUT_MS: 10000,
 } as const;
 
 export const ANIMATION = {

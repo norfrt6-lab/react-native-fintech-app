@@ -72,7 +72,17 @@
     "tradeSuccess": "交易成功",
     "tradeFailed": "交易失败",
     "insufficientBalance": "余额不足",
-    "available": "可用"
+    "available": "可用",
+    "noConnection": "无网络连接",
+    "noConnectionMessage": "离线状态无法执行交易，请检查网络连接。",
+    "stalePriceData": "价格数据过期",
+    "stalePriceMessage": "市场数据可能已过时，交易前请刷新价格以避免意外执行价格。",
+    "tradeAnyway": "仍然交易",
+    "tradeError": "交易错误",
+    "stopPrice": "止损价格",
+    "youReceive": "您将收到",
+    "youSell": "您将卖出",
+    "max": "最大"
   },
   "activity": {
     "title": "活动",
@@ -100,6 +110,16 @@
     "haptic": "触觉反馈",
     "about": "关于",
     "version": "版本",
-    "hideBalance": "隐藏余额"
+    "hideBalance": "隐藏余额",
+    "biometricLogin": "{{type}}登录",
+    "biometricTradeConfirmation": "生物识别交易确认",
+    "activePriceAlerts": "活跃价格提醒",
+    "clearTriggeredAlerts": "清除已触发提醒",
+    "clearNotificationHistory": "清除通知历史",
+    "cleared": "已清除",
+    "triggeredAlertsCleared": "已触发的提醒已被清除。",
+    "notificationHistoryCleared": "通知历史已被清除。",
+    "enrollmentFailed": "注册失败",
+    "enrollmentFailedMessage": "无法启用生物识别认证。"
   }
 }

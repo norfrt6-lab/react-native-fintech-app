@@ -7,6 +7,7 @@ export interface SyncAction {
   payload: Record<string, unknown>;
   createdAt: number;
   retryCount: number;
+  version: number;
 }
 
 export interface DeadLetterAction extends SyncAction {
@@ -51,13 +52,14 @@ class SyncQueue {
     }
   }
 
-  enqueue(action: Omit<SyncAction, 'id' | 'createdAt' | 'retryCount'>) {
+  enqueue(action: Omit<SyncAction, 'id' | 'createdAt' | 'retryCount' | 'version'> & { version?: number }) {
     this.ensureLoaded();
     const syncAction: SyncAction = {
       ...action,
       id: `sync_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       createdAt: Date.now(),
       retryCount: 0,
+      version: action.version ?? 1,
     };
 
     this.queue.push(syncAction);
@@ -154,6 +156,7 @@ class SyncQueue {
           payload: action.payload,
           createdAt: action.createdAt,
           retryCount: 0,
+          version: action.version,
         };
         const success = await processor(retryAction);
         if (success) {

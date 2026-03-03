@@ -1,0 +1,8 @@
+appId: com.norfrt6.fintrack
+---
+- launchApp
+- tapOn: "Settings"
+- assertVisible: "Settings"
+- tapOn: "Dark Mode"
+- tapOn: "Settings"
+- assertVisible: "Settings"
