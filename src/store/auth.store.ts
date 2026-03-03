@@ -2,7 +2,11 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { zustandStorage } from '../lib/storage';
+import { getAuthService } from '../core/auth/auth-service';
+import { logger } from '../lib/logger';
 import type { User, SecuritySettings } from '../types';
+
+const TAG = 'AuthStore';
 
 interface AuthStore {
   user: User | null;
@@ -17,7 +21,9 @@ interface AuthStore {
   setLocked: (locked: boolean) => void;
   updateSecuritySettings: (settings: Partial<SecuritySettings>) => void;
   updateLastActive: () => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, displayName: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
 }
 
 const defaultSecuritySettings: SecuritySettings = {
@@ -31,7 +37,7 @@ const defaultSecuritySettings: SecuritySettings = {
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    immer((set) => ({
+    immer((set, get) => ({
       user: null,
       isAuthenticated: false,
       isLoading: true,
@@ -66,13 +72,84 @@ export const useAuthStore = create<AuthStore>()(
           state.lastActiveAt = Date.now();
         }),
 
-      logout: () =>
+      login: async (email, password) => {
         set((state) => {
-          state.user = null;
-          state.isAuthenticated = false;
-          state.isLocked = false;
-          state.lastActiveAt = null;
-        }),
+          state.isLoading = true;
+        });
+
+        try {
+          const authService = getAuthService();
+          const result = await authService.login(email, password);
+
+          if (result.success && result.user) {
+            set((state) => {
+              state.user = result.user!;
+              state.isAuthenticated = true;
+              state.isLoading = false;
+            });
+            return { success: true };
+          }
+
+          set((state) => {
+            state.isLoading = false;
+          });
+          return { success: false, error: result.error ?? 'Login failed' };
+        } catch (error) {
+          logger.error(TAG, 'Login failed', error);
+          set((state) => {
+            state.isLoading = false;
+          });
+          return { success: false, error: 'An unexpected error occurred' };
+        }
+      },
+
+      register: async (email, password, displayName) => {
+        set((state) => {
+          state.isLoading = true;
+        });
+
+        try {
+          const authService = getAuthService();
+          const result = await authService.register(email, password, displayName);
+
+          if (result.success && result.user) {
+            set((state) => {
+              state.user = result.user!;
+              state.isAuthenticated = true;
+              state.isLoading = false;
+            });
+            return { success: true };
+          }
+
+          set((state) => {
+            state.isLoading = false;
+          });
+          return { success: false, error: result.error ?? 'Registration failed' };
+        } catch (error) {
+          logger.error(TAG, 'Registration failed', error);
+          set((state) => {
+            state.isLoading = false;
+          });
+          return { success: false, error: 'An unexpected error occurred' };
+        }
+      },
+
+      logout: async () => {
+        const userId = get().user?.uid;
+        try {
+          const authService = getAuthService();
+          await authService.logout(userId ?? '');
+        } catch (error) {
+          logger.error(TAG, 'Logout cleanup failed', error);
+        } finally {
+          set((state) => {
+            state.user = null;
+            state.isAuthenticated = false;
+            state.isLocked = false;
+            state.lastActiveAt = null;
+          });
+        }
+      },
     })),
     {
       name: 'auth-store',

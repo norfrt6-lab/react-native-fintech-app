@@ -1,53 +1,43 @@
+import { z } from 'zod';
 import { apiClient } from './client';
 import { MARKET } from '../lib/constants';
+import { logger } from '../lib/logger';
+import {
+  coinGeckoMarketListSchema,
+  coinGeckoDetailSchema,
+  priceHistorySchema,
+  ohlcDataSchema,
+  searchResultSchema,
+  trendingResultSchema,
+} from './schemas';
 import type { CoinMarketData, CoinDetail, PricePoint, CandlestickData, TimeRange } from '../types';
 
-interface CoinGeckoMarketItem {
-  id: string;
-  symbol: string;
-  name: string;
-  image: string;
-  current_price: number;
-  market_cap: number;
-  market_cap_rank: number;
-  total_volume: number;
-  high_24h: number;
-  low_24h: number;
-  price_change_24h: number;
-  price_change_percentage_24h: number;
-  price_change_percentage_7d_in_currency?: number;
-  circulating_supply: number;
-  total_supply: number | null;
-  max_supply: number | null;
-  ath: number;
-  ath_change_percentage: number;
-  ath_date: string;
-  last_updated: string;
-  sparkline_in_7d?: { price: number[] };
-}
+const TAG = 'MarketApi';
 
-function mapMarketItem(item: CoinGeckoMarketItem): CoinMarketData {
+type MarketItem = z.infer<typeof coinGeckoMarketListSchema>[number];
+
+function mapMarketItem(item: MarketItem): CoinMarketData {
   return {
     id: item.id,
     symbol: item.symbol,
     name: item.name,
     image: item.image,
-    currentPrice: item.current_price,
-    marketCap: item.market_cap,
-    marketCapRank: item.market_cap_rank,
-    totalVolume: item.total_volume,
-    high24h: item.high_24h,
-    low24h: item.low_24h,
-    priceChange24h: item.price_change_24h,
-    priceChangePercentage24h: item.price_change_percentage_24h,
+    currentPrice: item.current_price ?? 0,
+    marketCap: item.market_cap ?? 0,
+    marketCapRank: item.market_cap_rank ?? 0,
+    totalVolume: item.total_volume ?? 0,
+    high24h: item.high_24h ?? 0,
+    low24h: item.low_24h ?? 0,
+    priceChange24h: item.price_change_24h ?? 0,
+    priceChangePercentage24h: item.price_change_percentage_24h ?? 0,
     priceChangePercentage7d: item.price_change_percentage_7d_in_currency ?? 0,
-    circulatingSupply: item.circulating_supply,
+    circulatingSupply: item.circulating_supply ?? 0,
     totalSupply: item.total_supply,
     maxSupply: item.max_supply,
-    ath: item.ath,
-    athChangePercentage: item.ath_change_percentage,
-    athDate: item.ath_date,
-    lastUpdated: item.last_updated,
+    ath: item.ath ?? 0,
+    athChangePercentage: item.ath_change_percentage ?? 0,
+    athDate: item.ath_date ?? '',
+    lastUpdated: item.last_updated ?? '',
     sparklineIn7d: item.sparkline_in_7d,
   };
 }
@@ -68,7 +58,7 @@ export const marketApi = {
     perPage = MARKET.DEFAULT_PER_PAGE,
     sparkline = true,
   ): Promise<CoinMarketData[]> {
-    const { data } = await apiClient.get<CoinGeckoMarketItem[]>(
+    const { data } = await apiClient.get(
       '/coins/markets',
       {
         params: {
@@ -81,7 +71,14 @@ export const marketApi = {
         },
       },
     );
-    return data.map(mapMarketItem);
+
+    const parsed = coinGeckoMarketListSchema.safeParse(data);
+    if (!parsed.success) {
+      logger.error(TAG, 'Market data validation failed', parsed.error.flatten());
+      return [];
+    }
+
+    return parsed.data.map(mapMarketItem);
   },
 
   async getCoinDetail(coinId: string): Promise<CoinDetail> {
@@ -95,31 +92,38 @@ export const marketApi = {
       },
     });
 
+    const parsed = coinGeckoDetailSchema.safeParse(data);
+    if (!parsed.success) {
+      logger.error(TAG, 'Coin detail validation failed', parsed.error.flatten());
+      throw new Error(`Invalid coin detail response for ${coinId}`);
+    }
+
+    const d = parsed.data;
     return {
-      id: data.id,
-      symbol: data.symbol,
-      name: data.name,
-      image: data.image.large,
-      currentPrice: data.market_data.current_price.usd,
-      marketCap: data.market_data.market_cap.usd,
-      marketCapRank: data.market_cap_rank,
-      totalVolume: data.market_data.total_volume.usd,
-      high24h: data.market_data.high_24h.usd,
-      low24h: data.market_data.low_24h.usd,
-      priceChange24h: data.market_data.price_change_24h,
-      priceChangePercentage24h: data.market_data.price_change_percentage_24h,
-      priceChangePercentage7d: data.market_data.price_change_percentage_7d ?? 0,
-      circulatingSupply: data.market_data.circulating_supply,
-      totalSupply: data.market_data.total_supply,
-      maxSupply: data.market_data.max_supply,
-      ath: data.market_data.ath.usd,
-      athChangePercentage: data.market_data.ath_change_percentage.usd,
-      athDate: data.market_data.ath_date.usd,
-      lastUpdated: data.last_updated,
-      description: data.description.en,
-      homepage: data.links?.homepage?.[0] ?? '',
-      categories: data.categories ?? [],
-      genesisDate: data.genesis_date,
+      id: d.id,
+      symbol: d.symbol,
+      name: d.name,
+      image: d.image.large,
+      currentPrice: d.market_data.current_price.usd,
+      marketCap: d.market_data.market_cap.usd,
+      marketCapRank: d.market_cap_rank ?? 0,
+      totalVolume: d.market_data.total_volume.usd,
+      high24h: d.market_data.high_24h.usd,
+      low24h: d.market_data.low_24h.usd,
+      priceChange24h: d.market_data.price_change_24h ?? 0,
+      priceChangePercentage24h: d.market_data.price_change_percentage_24h ?? 0,
+      priceChangePercentage7d: d.market_data.price_change_percentage_7d ?? 0,
+      circulatingSupply: d.market_data.circulating_supply ?? 0,
+      totalSupply: d.market_data.total_supply,
+      maxSupply: d.market_data.max_supply,
+      ath: d.market_data.ath.usd,
+      athChangePercentage: d.market_data.ath_change_percentage.usd,
+      athDate: d.market_data.ath_date.usd,
+      lastUpdated: d.last_updated ?? '',
+      description: d.description.en,
+      homepage: d.links?.homepage?.[0] ?? '',
+      categories: d.categories ?? [],
+      genesisDate: d.genesis_date,
     };
   },
 
@@ -135,7 +139,13 @@ export const marketApi = {
       },
     });
 
-    return data.prices.map(([timestamp, price]: [number, number]) => ({
+    const parsed = priceHistorySchema.safeParse(data);
+    if (!parsed.success) {
+      logger.error(TAG, 'Price history validation failed', parsed.error.flatten());
+      return [];
+    }
+
+    return parsed.data.prices.map(([timestamp, price]) => ({
       timestamp,
       price,
     }));
@@ -152,8 +162,14 @@ export const marketApi = {
       },
     });
 
-    return data.map(
-      ([timestamp, open, high, low, close]: [number, number, number, number, number]) => ({
+    const parsed = ohlcDataSchema.safeParse(data);
+    if (!parsed.success) {
+      logger.error(TAG, 'OHLC data validation failed', parsed.error.flatten());
+      return [];
+    }
+
+    return parsed.data.map(
+      ([timestamp, open, high, low, close]) => ({
         timestamp,
         open,
         high,
@@ -168,14 +184,20 @@ export const marketApi = {
       params: { query },
     });
 
-    const coinIds = data.coins
+    const parsed = searchResultSchema.safeParse(data);
+    if (!parsed.success) {
+      logger.error(TAG, 'Search validation failed', parsed.error.flatten());
+      return [];
+    }
+
+    const coinIds = parsed.data.coins
       .slice(0, 20)
-      .map((c: { id: string }) => c.id)
+      .map((c) => c.id)
       .join(',');
 
     if (!coinIds) return [];
 
-    const { data: marketData } = await apiClient.get<CoinGeckoMarketItem[]>(
+    const { data: marketData } = await apiClient.get(
       '/coins/markets',
       {
         params: {
@@ -187,19 +209,31 @@ export const marketApi = {
       },
     );
 
-    return marketData.map(mapMarketItem);
+    const marketParsed = coinGeckoMarketListSchema.safeParse(marketData);
+    if (!marketParsed.success) {
+      logger.error(TAG, 'Search market data validation failed', marketParsed.error.flatten());
+      return [];
+    }
+
+    return marketParsed.data.map(mapMarketItem);
   },
 
   async getTrendingCoins(): Promise<CoinMarketData[]> {
     const { data } = await apiClient.get('/search/trending');
 
-    const coinIds = data.coins
-      .map((item: { item: { id: string } }) => item.item.id)
+    const parsed = trendingResultSchema.safeParse(data);
+    if (!parsed.success) {
+      logger.error(TAG, 'Trending validation failed', parsed.error.flatten());
+      return [];
+    }
+
+    const coinIds = parsed.data.coins
+      .map((item) => item.item.id)
       .join(',');
 
     if (!coinIds) return [];
 
-    const { data: marketData } = await apiClient.get<CoinGeckoMarketItem[]>(
+    const { data: marketData } = await apiClient.get(
       '/coins/markets',
       {
         params: {
@@ -211,6 +245,12 @@ export const marketApi = {
       },
     );
 
-    return marketData.map(mapMarketItem);
+    const marketParsed = coinGeckoMarketListSchema.safeParse(marketData);
+    if (!marketParsed.success) {
+      logger.error(TAG, 'Trending market data validation failed', marketParsed.error.flatten());
+      return [];
+    }
+
+    return marketParsed.data.map(mapMarketItem);
   },
 };

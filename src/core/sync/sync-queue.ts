@@ -15,17 +15,16 @@ const MAX_RETRIES = 3;
 class SyncQueue {
   private queue: SyncAction[] = [];
   private processing = false;
+  private loaded = false;
 
-  constructor() {
-    this.load();
-  }
-
-  private load() {
+  private ensureLoaded() {
+    if (this.loaded) return;
     try {
       const stored = zustandStorage.getItem(QUEUE_KEY);
       if (stored) {
         this.queue = JSON.parse(stored as string);
       }
+      this.loaded = true;
     } catch {
       this.queue = [];
     }
@@ -40,6 +39,7 @@ class SyncQueue {
   }
 
   enqueue(action: Omit<SyncAction, 'id' | 'createdAt' | 'retryCount'>) {
+    this.ensureLoaded();
     const syncAction: SyncAction = {
       ...action,
       id: `sync_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -55,6 +55,7 @@ class SyncQueue {
   async processQueue(
     processor: (action: SyncAction) => Promise<boolean>,
   ): Promise<{ processed: number; failed: number }> {
+    this.ensureLoaded();
     if (this.processing || this.queue.length === 0) {
       return { processed: 0, failed: 0 };
     }
@@ -98,6 +99,7 @@ class SyncQueue {
   }
 
   getPendingCount(): number {
+    this.ensureLoaded();
     return this.queue.length;
   }
 
