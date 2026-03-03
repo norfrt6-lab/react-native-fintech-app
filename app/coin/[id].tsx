@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  Modal,
   useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,10 +16,11 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
 import { Button, Card, PriceChange, AppErrorBoundary, CoinDetailSkeleton } from '@/src/ui/components/common';
-import { TimeRangeSelector } from '@/src/ui/components/market';
+import { TimeRangeSelector, PriceAlertSheet } from '@/src/ui/components/market';
 import { LineChart } from '@/src/ui/components/charts';
-import { useMarketStore } from '@/src/store';
+import { useMarketStore, useNotificationStore } from '@/src/store';
 import { formatCurrency, formatNumber } from '@/src/lib/formatters';
+import { getAlertsForCoin } from '@/src/core/notification';
 import type { TimeRange } from '@/src/types';
 
 export default function CoinDetailScreen() {
@@ -28,6 +30,8 @@ export default function CoinDetailScreen() {
   const { colors } = useTheme();
   const dimensions = useWindowDimensions();
 
+  const [showAlertSheet, setShowAlertSheet] = useState(false);
+
   const {
     selectedCoin,
     priceHistory,
@@ -36,6 +40,11 @@ export default function CoinDetailScreen() {
     fetchCoinDetail,
     fetchPriceHistory,
   } = useMarketStore();
+
+  const alerts = useNotificationStore((s) => s.alerts);
+  const activeAlertCount = selectedCoin
+    ? getAlertsForCoin(alerts, selectedCoin.id).filter((a) => a.status === 'active').length
+    : 0;
 
   useEffect(() => {
     if (id) {
@@ -74,13 +83,21 @@ export default function CoinDetailScreen() {
             {t('common.back')}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => useMarketStore.getState().toggleWatchlist(selectedCoin.id)}
-        >
-          <Text style={{ fontSize: 22 }}>
-            {useMarketStore.getState().isInWatchlist(selectedCoin.id) ? '★' : '☆'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => setShowAlertSheet(true)} style={styles.headerButton}>
+            <Text style={{ fontSize: 20 }}>
+              {activeAlertCount > 0 ? `🔔 ${activeAlertCount}` : '🔔'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => useMarketStore.getState().toggleWatchlist(selectedCoin.id)}
+            style={styles.headerButton}
+          >
+            <Text style={{ fontSize: 22 }}>
+              {useMarketStore.getState().isInWatchlist(selectedCoin.id) ? '★' : '☆'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -182,6 +199,25 @@ export default function CoinDetailScreen() {
           />
         </View>
       </ScrollView>
+      <Modal
+        visible={showAlertSheet}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowAlertSheet(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAlertSheet(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <PriceAlertSheet
+              coin={selectedCoin}
+              onClose={() => setShowAlertSheet(false)}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
     </AppErrorBoundary>
   );
@@ -283,5 +319,18 @@ const styles = StyleSheet.create({
   tradeActions: {
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  headerButton: {
+    padding: spacing.xs,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
 });

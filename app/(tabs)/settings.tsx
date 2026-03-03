@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
 import { Divider } from '@/src/ui/components/common';
-import { useSettingsStore, useAuthStore } from '@/src/store';
+import { useSettingsStore, useAuthStore, useNotificationStore } from '@/src/store';
 import { APP_VERSION } from '@/src/lib/constants';
 import {
   checkBiometricCapability,
@@ -46,6 +46,11 @@ export default function SettingsScreen() {
   } = useSettingsStore();
 
   const { logout, user, securitySettings, updateSecuritySettings } = useAuthStore();
+  const alerts = useNotificationStore((s) => s.alerts);
+  const clearTriggeredAlerts = useNotificationStore((s) => s.clearTriggeredAlerts);
+  const clearHistory = useNotificationStore((s) => s.clearHistory);
+  const activeAlertCount = alerts.filter((a) => a.status === 'active').length;
+
   const [biometricType, setBiometricType] = useState<BiometricType>('none');
   const [biometricHardwareAvailable, setBiometricHardwareAvailable] = useState(false);
 
@@ -211,6 +216,24 @@ export default function SettingsScreen() {
             label={t('settings.haptic')}
             value={hapticFeedback}
             onToggle={setHapticFeedback}
+          />
+          <SettingRow
+            label="Active Price Alerts"
+            value={`${activeAlertCount}`}
+          />
+          <SettingRow
+            label="Clear Triggered Alerts"
+            onPress={() => {
+              clearTriggeredAlerts();
+              Alert.alert('Cleared', 'Triggered alerts have been removed.');
+            }}
+          />
+          <SettingRow
+            label="Clear Notification History"
+            onPress={() => {
+              clearHistory();
+              Alert.alert('Cleared', 'Notification history has been cleared.');
+            }}
           />
         </View>
 

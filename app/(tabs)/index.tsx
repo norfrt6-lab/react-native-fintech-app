@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -12,12 +13,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
-import { spacing, typography } from '@/src/ui/theme';
+import { spacing, typography, borderRadius } from '@/src/ui/theme';
 import { PortfolioCard } from '@/src/ui/components/portfolio';
 import { HoldingListItem } from '@/src/ui/components/portfolio';
 import { PortfolioChart } from '@/src/ui/components/charts';
 import { EmptyState, AppErrorBoundary, DashboardSkeleton } from '@/src/ui/components/common';
-import { usePortfolioStore, useMarketStore } from '@/src/store';
+import { usePortfolioStore, useMarketStore, useNotificationStore } from '@/src/store';
 import type { Holding } from '@/src/types';
 
 export default function DashboardScreen() {
@@ -38,6 +39,8 @@ export default function DashboardScreen() {
   } = usePortfolioStore();
 
   const { fetchMarketData, isRefreshing, isLoading, coins } = useMarketStore();
+  const unreadCount = useNotificationStore((s) => s.getUnreadCount());
+  const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
 
   useEffect(() => {
     fetchMarketData();
@@ -74,9 +77,21 @@ export default function DashboardScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.greeting, { color: colors.text }]}>
-          {t('tabs.dashboard')}
-        </Text>
+        <View style={styles.dashboardHeader}>
+          <Text style={[styles.greeting, { color: colors.text }]}>
+            {t('tabs.dashboard')}
+          </Text>
+          <TouchableOpacity onPress={markAllAsRead} style={styles.bellButton}>
+            <Text style={{ fontSize: 20 }}>🔔</Text>
+            {unreadCount > 0 && (
+              <View style={[styles.badge, { backgroundColor: colors.error }]}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
         <PortfolioCard
           totalValue={summary?.totalValue ?? 0}
@@ -134,10 +149,35 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: spacing.xxxl,
   },
-  greeting: {
-    ...typography.h2,
+  dashboardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xl,
+  },
+  greeting: {
+    ...typography.h2,
+  },
+  bellButton: {
+    position: 'relative',
+    padding: spacing.xs,
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   chartContainer: {
     paddingHorizontal: spacing.lg,

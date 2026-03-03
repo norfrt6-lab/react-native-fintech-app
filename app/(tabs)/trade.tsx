@@ -16,8 +16,9 @@ import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
 import { Button, Input, Card, Divider } from '@/src/ui/components/common';
 import { TradeConfirmation, TradeSuccess } from '@/src/ui/components/trade';
-import { useTradeStore, usePortfolioStore, useMarketStore } from '@/src/store';
+import { useTradeStore, usePortfolioStore, useMarketStore, useSettingsStore } from '@/src/store';
 import { validateTrade, executeTrade, calculateTradePreview } from '@/src/core/trade';
+import { scheduleTradeNotification } from '@/src/core/notification';
 import { formatCurrency, formatQuantity } from '@/src/lib/formatters';
 import { TRADE } from '@/src/lib/constants';
 import type { OrderSide, OrderType, CoinMarketData } from '@/src/types';
@@ -170,6 +171,17 @@ export default function TradeScreen() {
       totalAmount: order.totalAmount,
       price: order.price,
     });
+
+    // Send trade notification
+    const notificationsEnabled = useSettingsStore.getState().notificationsEnabled;
+    if (notificationsEnabled) {
+      scheduleTradeNotification(
+        activeSide,
+        selectedCoin.name,
+        formatQuantity(order.quantity),
+        formatCurrency(order.totalAmount),
+      );
+    }
 
     setIsExecuting(false);
     setShowConfirmation(false);
