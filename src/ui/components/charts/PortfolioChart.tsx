@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import Svg, { Path, Defs, LinearGradient, Stop, Line, Circle } from 'react-native-svg';
+import Svg, { Path, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
 import { useTheme } from '../../theme/ThemeContext';
-import { spacing, typography } from '../../theme';
+import { typography } from '../../theme';
 import { formatCurrency } from '../../../lib/formatters';
 import type { PortfolioHistoryPoint } from '../../../types';
 

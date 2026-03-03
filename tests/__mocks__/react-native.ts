@@ -9,7 +9,7 @@ export const AppState = {
 };
 
 export const StyleSheet = {
-  create: (styles: any) => styles,
+  create: (styles: Record<string, unknown>) => styles,
   hairlineWidth: 0.5,
 };
 

@@ -1,8 +1,8 @@
 // Fix for Expo SDK 55 import.meta registry
-(globalThis as any).__ExpoImportMetaRegistry = new Map();
+(globalThis as unknown as Record<string, unknown>).__ExpoImportMetaRegistry = new Map();
 
 // Define __DEV__ for React Native
-(globalThis as any).__DEV__ = true;
+(globalThis as unknown as Record<string, unknown>).__DEV__ = true;
 
 // Mock MMKV
 jest.mock('react-native-mmkv', () => ({

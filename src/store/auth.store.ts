@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { zustandStorage } from '../lib/storage';
-import type { User, BiometricType, SecuritySettings } from '../types';
+import type { User, SecuritySettings } from '../types';
 
 interface AuthStore {
   user: User | null;

@@ -14,7 +14,6 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
-import { Divider } from '@/src/ui/components/common';
 import { useSettingsStore, useAuthStore, useNotificationStore } from '@/src/store';
 import { APP_VERSION } from '@/src/lib/constants';
 import {

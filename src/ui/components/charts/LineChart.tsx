@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, ViewStyle, LayoutChangeEvent } from 'react-native';
-import Svg, { Path, Defs, LinearGradient, Stop, Circle, Line } from 'react-native-svg';
+import { View, ViewStyle } from 'react-native';
+import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useTheme } from '../../theme/ThemeContext';
 
 interface DataPoint {
@@ -65,7 +65,7 @@ export function LineChart({
   height,
   positive = true,
   showGradient = true,
-  showDots = false,
+  showDots: _showDots = false,
   strokeWidth = 2,
   style,
 }: LineChartProps) {

@@ -26,15 +26,6 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
   const [biometricType, setBiometricType] = useState<BiometricType>('none');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    checkBiometricCapability().then((cap) => {
-      setBiometricType(cap.biometricType);
-      if (cap.isAvailable) {
-        handleBiometricUnlock();
-      }
-    });
-  }, []);
-
   const handleBiometricUnlock = useCallback(async () => {
     setError('');
     const result = await authenticateWithBiometric('Unlock FinTrack');
@@ -47,6 +38,15 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
       setError(result.error ?? 'Authentication failed');
     }
   }, [onUnlock]);
+
+  useEffect(() => {
+    checkBiometricCapability().then((cap) => {
+      setBiometricType(cap.biometricType);
+      if (cap.isAvailable) {
+        handleBiometricUnlock();
+      }
+    });
+  }, [handleBiometricUnlock]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
