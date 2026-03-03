@@ -25,7 +25,7 @@ export function Card({
 }: CardProps) {
   const { colors } = useTheme();
 
-  const cardStyle: ViewStyle[] = [
+  const cardStyle: (ViewStyle | undefined)[] = [
     styles.card,
     {
       backgroundColor: elevated ? colors.surfaceElevated : colors.surface,

@@ -88,7 +88,6 @@ export default function MarketsScreen() {
       <FlashList
         data={filteredCoins}
         renderItem={renderItem}
-        estimatedItemSize={64}
         keyExtractor={(item) => item.id}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}

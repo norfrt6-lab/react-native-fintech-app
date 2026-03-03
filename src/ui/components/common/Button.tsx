@@ -48,7 +48,7 @@ export function Button({
     onPress();
   };
 
-  const containerStyles: ViewStyle[] = [
+  const containerStyles: (ViewStyle | undefined | false)[] = [
     styles.base,
     styles[`size_${size}`],
     {

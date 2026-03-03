@@ -1,7 +1,7 @@
-import { MMKV } from 'react-native-mmkv';
+import { createMMKV } from 'react-native-mmkv';
 import { StateStorage } from 'zustand/middleware';
 
-export const storage = new MMKV({
+export const storage = createMMKV({
   id: 'fintech-app-storage',
   encryptionKey: 'fintech-secure-key-v1',
 });
@@ -15,7 +15,7 @@ export const zustandStorage: StateStorage = {
     storage.set(name, value);
   },
   removeItem: (name: string) => {
-    storage.delete(name);
+    storage.remove(name);
   },
 };
 

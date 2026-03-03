@@ -35,7 +35,8 @@ export function AnimatedNumber({
   const animatedProps = useAnimatedProps(() => {
     return {
       text: formatter(animatedValue.value),
-    } as { text: string };
+      defaultValue: '',
+    };
   });
 
   return (
