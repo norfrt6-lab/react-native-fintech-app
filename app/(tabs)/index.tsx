@@ -17,7 +17,7 @@ import { spacing, typography } from '@/src/ui/theme';
 import { PortfolioCard } from '@/src/ui/components/portfolio';
 import { HoldingListItem } from '@/src/ui/components/portfolio';
 import { PortfolioChart } from '@/src/ui/components/charts';
-import { EmptyState, AppErrorBoundary, DashboardSkeleton, FadeInView } from '@/src/ui/components/common';
+import { EmptyState, AppErrorBoundary, DashboardSkeleton, FadeInView, StaleBanner, ErrorBanner } from '@/src/ui/components/common';
 import { usePortfolioStore, useMarketStore, useNotificationStore } from '@/src/store';
 import type { Holding } from '@/src/types';
 
@@ -38,7 +38,7 @@ export default function DashboardScreen() {
     updatePortfolioSummary,
   } = usePortfolioStore();
 
-  const { fetchMarketData, isRefreshing, isLoading, coins } = useMarketStore();
+  const { fetchMarketData, isRefreshing, isLoading, coins, isDataStale, getLastFetchedAt, error: marketError, clearError } = useMarketStore();
   const unreadCount = useNotificationStore((s) => s.getUnreadCount());
   const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
 
@@ -97,6 +97,18 @@ export default function DashboardScreen() {
             )}
           </TouchableOpacity>
         </View>
+
+        {marketError && (
+          <View style={{ paddingHorizontal: spacing.lg }}>
+            <ErrorBanner message={marketError} onRetry={() => fetchMarketData(true)} onDismiss={clearError} />
+          </View>
+        )}
+
+        {!marketError && isDataStale() && (
+          <View style={{ paddingHorizontal: spacing.lg }}>
+            <StaleBanner lastUpdatedAt={getLastFetchedAt()} onRefresh={() => fetchMarketData(true)} />
+          </View>
+        )}
 
         <PortfolioCard
           totalValue={summary?.totalValue ?? 0}

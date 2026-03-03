@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography } from '@/src/ui/theme';
-import { Input, AppErrorBoundary, MarketsSkeleton } from '@/src/ui/components/common';
+import { Input, AppErrorBoundary, MarketsSkeleton, StaleBanner, ErrorBanner } from '@/src/ui/components/common';
 import { CoinListItem } from '@/src/ui/components/market';
 import { useMarketStore } from '@/src/store';
 import type { CoinMarketData } from '@/src/types';
@@ -31,6 +31,10 @@ export default function MarketsScreen() {
     fetchMarketData,
     fetchMoreCoins,
     hasMore,
+    isDataStale,
+    getLastFetchedAt,
+    error: marketError,
+    clearError,
   } = useMarketStore();
 
   useEffect(() => {
@@ -83,6 +87,12 @@ export default function MarketsScreen() {
           onChangeText={setSearchQuery}
           containerStyle={styles.searchContainer}
         />
+        {marketError && (
+          <ErrorBanner message={marketError} onRetry={() => fetchMarketData(true)} onDismiss={clearError} />
+        )}
+        {!marketError && isDataStale() && (
+          <StaleBanner lastUpdatedAt={getLastFetchedAt()} onRefresh={() => fetchMarketData(true)} />
+        )}
       </View>
 
       <FlashList
