@@ -11,6 +11,8 @@ export { Header } from './Header';
 export { AppErrorBoundary } from './ErrorBoundary';
 export { DashboardSkeleton, MarketsSkeleton, CoinDetailSkeleton } from './ScreenSkeleton';
 export { OfflineBanner } from './OfflineBanner';
+export { StaleBanner } from './StaleBanner';
+export { ErrorBanner } from './ErrorBanner';
 export { AnimatedPressable } from './AnimatedPressable';
 export { AnimatedNumber } from './AnimatedNumber';
 export { FadeInView } from './FadeInView';
