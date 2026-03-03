@@ -8,7 +8,9 @@ import { StyleSheet, AppState } from 'react-native';
 import 'react-native-reanimated';
 
 import { AppThemeProvider } from '@/src/ui/theme/ThemeContext';
-import { useSettingsStore, useAuthStore, useConnectivityStore } from '@/src/store';
+import { useSettingsStore, useAuthStore, useConnectivityStore, useNotificationStore, useMarketStore } from '@/src/store';
+import { addNotificationResponseListener } from '@/src/core/notification';
+import { useRouter } from 'expo-router';
 import { LockScreen } from '@/src/ui/components/auth';
 import { OfflineBanner } from '@/src/ui/components/common';
 import '@/src/lib/i18n';
@@ -55,11 +57,41 @@ function RootLayoutNav() {
   } = useAuthStore();
 
   const initializeConnectivity = useConnectivityStore((s) => s.initialize);
+  const initializeNotifications = useNotificationStore((s) => s.initialize);
+  const checkAlerts = useNotificationStore((s) => s.checkAlerts);
+  const notificationsEnabled = useSettingsStore((s) => s.notificationsEnabled);
+  const priceAlertsEnabled = useSettingsStore((s) => s.priceAlerts);
+  const coins = useMarketStore((s) => s.coins);
+  const router = useRouter();
 
   useEffect(() => {
     const cleanup = initializeConnectivity();
     return cleanup;
   }, [initializeConnectivity]);
+
+  useEffect(() => {
+    if (notificationsEnabled) {
+      initializeNotifications();
+    }
+  }, [notificationsEnabled, initializeNotifications]);
+
+  // Check price alerts whenever market data updates
+  useEffect(() => {
+    if (notificationsEnabled && priceAlertsEnabled && coins.length > 0) {
+      checkAlerts(coins);
+    }
+  }, [coins, notificationsEnabled, priceAlertsEnabled, checkAlerts]);
+
+  // Handle notification tap → deep link
+  useEffect(() => {
+    const subscription = addNotificationResponseListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.type === 'price_alert' && data?.coinId) {
+        router.push(`/coin/${data.coinId}`);
+      }
+    });
+    return () => subscription.remove();
+  }, [router]);
 
   const appStateRef = useRef(AppState.currentState);
 
