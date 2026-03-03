@@ -27,6 +27,7 @@ interface MarketStore {
   error: string | null;
   currentPage: number;
   hasMore: boolean;
+  lastFetchedAt: number | null;
 
   fetchMarketData: (refresh?: boolean) => Promise<void>;
   fetchMoreCoins: () => Promise<void>;
@@ -61,6 +62,7 @@ export const useMarketStore = create<MarketStore>()(
       error: null,
       currentPage: 1,
       hasMore: true,
+      lastFetchedAt: null,
 
       fetchMarketData: async (refresh = false) => {
         try {
@@ -82,6 +84,7 @@ export const useMarketStore = create<MarketStore>()(
             state.hasMore = data.length >= 50;
             state.isLoading = false;
             state.isRefreshing = false;
+            state.lastFetchedAt = Date.now();
           });
         } catch (error) {
           logger.error(TAG, 'Failed to fetch market data', error);

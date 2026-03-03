@@ -8,8 +8,9 @@ import { StyleSheet, AppState } from 'react-native';
 import 'react-native-reanimated';
 
 import { AppThemeProvider } from '@/src/ui/theme/ThemeContext';
-import { useSettingsStore, useAuthStore } from '@/src/store';
+import { useSettingsStore, useAuthStore, useConnectivityStore } from '@/src/store';
 import { LockScreen } from '@/src/ui/components/auth';
+import { OfflineBanner } from '@/src/ui/components/common';
 import '@/src/lib/i18n';
 
 export { ErrorBoundary } from 'expo-router';
@@ -52,6 +53,13 @@ function RootLayoutNav() {
     lastActiveAt,
     securitySettings,
   } = useAuthStore();
+
+  const initializeConnectivity = useConnectivityStore((s) => s.initialize);
+
+  useEffect(() => {
+    const cleanup = initializeConnectivity();
+    return cleanup;
+  }, [initializeConnectivity]);
 
   const appStateRef = useRef(AppState.currentState);
 
@@ -98,6 +106,7 @@ function RootLayoutNav() {
     <GestureHandlerRootView style={styles.root}>
       <AppThemeProvider forcedTheme={forcedTheme}>
         <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+          <OfflineBanner />
           {isLocked && isAuthenticated ? (
             <LockScreen onUnlock={handleUnlock} />
           ) : (
