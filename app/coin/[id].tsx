@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -15,6 +16,7 @@ import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
 import { Button, Card, PriceChange, Skeleton } from '@/src/ui/components/common';
 import { TimeRangeSelector } from '@/src/ui/components/market';
+import { LineChart } from '@/src/ui/components/charts';
 import { useMarketStore } from '@/src/store';
 import { formatCurrency, formatNumber } from '@/src/lib/formatters';
 import type { TimeRange } from '@/src/types';
@@ -24,6 +26,7 @@ export default function CoinDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const dimensions = useWindowDimensions();
 
   const {
     selectedCoin,
@@ -118,10 +121,21 @@ export default function CoinDetailScreen() {
           />
         </View>
 
-        <View style={[styles.chartPlaceholder, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-          <Text style={[styles.chartText, { color: colors.textTertiary }]}>
-            Price Chart ({priceHistory.length} data points)
-          </Text>
+        <View style={styles.chartContainer}>
+          {priceHistory.length > 1 ? (
+            <LineChart
+              data={priceHistory}
+              width={dimensions.width - spacing.lg * 2}
+              height={200}
+              positive={selectedCoin.priceChangePercentage24h >= 0}
+              showGradient
+              strokeWidth={2.5}
+            />
+          ) : (
+            <View style={[styles.chartPlaceholder, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+              <Text style={[styles.chartText, { color: colors.textTertiary }]}>Loading chart...</Text>
+            </View>
+          )}
         </View>
 
         <TimeRangeSelector
@@ -230,14 +244,16 @@ const styles = StyleSheet.create({
   price: {
     ...typography.monoLarge,
   },
+  chartContainer: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
   chartPlaceholder: {
     height: 200,
-    marginHorizontal: spacing.lg,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
   },
   chartText: {
     ...typography.bodySmall,

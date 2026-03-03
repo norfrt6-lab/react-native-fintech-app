@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +15,7 @@ import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography } from '@/src/ui/theme';
 import { PortfolioCard } from '@/src/ui/components/portfolio';
 import { HoldingListItem } from '@/src/ui/components/portfolio';
+import { PortfolioChart } from '@/src/ui/components/charts';
 import { EmptyState } from '@/src/ui/components/common';
 import { usePortfolioStore, useMarketStore } from '@/src/store';
 import type { Holding } from '@/src/types';
@@ -24,9 +26,12 @@ export default function DashboardScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
+  const { width: screenWidth } = useWindowDimensions();
+
   const {
     holdings,
     summary,
+    history,
     hideBalance,
     setHideBalance,
     updatePortfolioSummary,
@@ -74,6 +79,16 @@ export default function DashboardScreen() {
           onToggleHide={() => setHideBalance(!hideBalance)}
         />
 
+        {history.length >= 2 && (
+          <View style={styles.chartContainer}>
+            <PortfolioChart
+              data={history}
+              width={screenWidth - spacing.lg * 2}
+              height={180}
+            />
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t('dashboard.holdings')}
@@ -113,6 +128,10 @@ const styles = StyleSheet.create({
     ...typography.h2,
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xl,
+  },
+  chartContainer: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
   },
   section: {
     marginTop: spacing.xxl,

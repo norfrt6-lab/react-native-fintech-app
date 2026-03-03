@@ -61,7 +61,7 @@ export default function MarketsScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: CoinMarketData }) => (
-      <CoinListItem coin={item} onPress={handleCoinPress} />
+      <CoinListItem coin={item} onPress={handleCoinPress} showSparkline />
     ),
     [],
   );
