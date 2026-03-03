@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -14,6 +15,12 @@ import { useTheme } from '../../theme/ThemeContext';
 import { spacing, typography, borderRadius, shadows } from '../../theme';
 import { Button, Divider } from '../common';
 import { formatCurrency, formatQuantity } from '../../../lib/formatters';
+import {
+  authenticateWithBiometric,
+  checkBiometricCapability,
+  getBiometricLabel,
+} from '../../../core/auth';
+import { useSettingsStore, useAuthStore } from '../../../store';
 import type { OrderSide, OrderType } from '../../../types';
 
 interface TradeConfirmationProps {
@@ -51,8 +58,33 @@ export function TradeConfirmation({
 }: TradeConfirmationProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const [authenticating, setAuthenticating] = useState(false);
 
-  const handleConfirm = () => {
+  const biometricTradeEnabled = useSettingsStore((s) => s.biometricTradeConfirmation);
+  const biometricEnabled = useAuthStore((s) => s.securitySettings.biometricEnabled);
+
+  const handleConfirm = async () => {
+    if (biometricTradeEnabled && biometricEnabled) {
+      setAuthenticating(true);
+      const capability = await checkBiometricCapability();
+
+      if (capability.isAvailable) {
+        const result = await authenticateWithBiometric(
+          `Confirm ${side === 'buy' ? 'purchase' : 'sale'} of ${coinSymbol.toUpperCase()}`,
+        );
+
+        setAuthenticating(false);
+
+        if (!result.success) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          Alert.alert('Authentication Required', result.error ?? 'Biometric authentication failed');
+          return;
+        }
+      } else {
+        setAuthenticating(false);
+      }
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onConfirm();
   };
@@ -119,7 +151,7 @@ export function TradeConfirmation({
               variant={side === 'buy' ? 'primary' : 'danger'}
               size="lg"
               fullWidth
-              loading={loading}
+              loading={loading || authenticating}
             />
             <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
               <Text style={[styles.cancelText, { color: colors.textSecondary }]}>

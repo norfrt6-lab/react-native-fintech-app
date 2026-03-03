@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +17,13 @@ import { spacing, typography, borderRadius } from '@/src/ui/theme';
 import { Divider } from '@/src/ui/components/common';
 import { useSettingsStore, useAuthStore } from '@/src/store';
 import { APP_VERSION } from '@/src/lib/constants';
+import {
+  checkBiometricCapability,
+  enrollBiometric,
+  unenrollBiometric,
+  getBiometricLabel,
+} from '@/src/core/auth';
+import type { BiometricType } from '@/src/types';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -37,7 +45,36 @@ export default function SettingsScreen() {
     setBiometricTradeConfirmation,
   } = useSettingsStore();
 
-  const { logout, securitySettings, updateSecuritySettings } = useAuthStore();
+  const { logout, user, securitySettings, updateSecuritySettings } = useAuthStore();
+  const [biometricType, setBiometricType] = useState<BiometricType>('none');
+  const [biometricHardwareAvailable, setBiometricHardwareAvailable] = useState(false);
+
+  useEffect(() => {
+    checkBiometricCapability().then((cap) => {
+      setBiometricHardwareAvailable(cap.isAvailable);
+      setBiometricType(cap.biometricType);
+    });
+  }, []);
+
+  const handleBiometricToggle = async (enabled: boolean) => {
+    if (enabled) {
+      const success = await enrollBiometric(user?.uid ?? '');
+      if (success) {
+        updateSecuritySettings({
+          biometricEnabled: true,
+          biometricType,
+        });
+      } else {
+        Alert.alert('Enrollment Failed', 'Could not enable biometric authentication.');
+      }
+    } else {
+      await unenrollBiometric();
+      updateSecuritySettings({
+        biometricEnabled: false,
+        biometricType: 'none',
+      });
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -99,11 +136,13 @@ export default function SettingsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
             {t('settings.security')}
           </Text>
-          <SettingToggle
-            label={t('settings.biometric')}
-            value={securitySettings.biometricEnabled}
-            onToggle={(val) => updateSecuritySettings({ biometricEnabled: val })}
-          />
+          {biometricHardwareAvailable && (
+            <SettingToggle
+              label={`${getBiometricLabel(biometricType)} Login`}
+              value={securitySettings.biometricEnabled}
+              onToggle={handleBiometricToggle}
+            />
+          )}
           <SettingToggle
             label={t('settings.hideBalance')}
             value={securitySettings.hideBalance}
