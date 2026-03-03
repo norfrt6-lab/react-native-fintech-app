@@ -25,6 +25,9 @@ export const HoldingListItem = memo(function HoldingListItem({
       onPress={() => onPress(holding)}
       activeOpacity={0.6}
       style={[styles.container, { borderBottomColor: colors.divider }]}
+      accessibilityRole="button"
+      accessibilityLabel={`${holding.name}, ${formatQuantity(holding.quantity)} ${holding.symbol.toUpperCase()}, value ${formatCurrency(holding.value)}`}
+      accessibilityHint="Opens coin details"
     >
       <View style={styles.left}>
         <Image

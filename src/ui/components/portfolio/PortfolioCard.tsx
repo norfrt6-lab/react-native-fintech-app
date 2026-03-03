@@ -37,10 +37,20 @@ export function PortfolioCard({
         },
         shadows.lg,
       ]}
+      accessibilityRole="summary"
+      accessibilityLabel={hideBalance
+        ? 'Portfolio value hidden'
+        : `Portfolio value ${formatCurrency(totalValue)}, today ${dayChange >= 0 ? 'up' : 'down'} ${formatCurrency(Math.abs(dayChange))}`
+      }
     >
       <View style={styles.header}>
         <Text style={styles.label}>Portfolio Value</Text>
-        <TouchableOpacity onPress={onToggleHide} hitSlop={8}>
+        <TouchableOpacity
+          onPress={onToggleHide}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={hideBalance ? 'Show balance' : 'Hide balance'}
+        >
           <Text style={styles.eyeIcon}>{hideBalance ? '👁️‍🗨️' : '👁️'}</Text>
         </TouchableOpacity>
       </View>

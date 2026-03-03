@@ -26,6 +26,9 @@ export const CoinListItem = memo(function CoinListItem({
       onPress={() => onPress(coin)}
       activeOpacity={0.6}
       style={[styles.container, { borderBottomColor: colors.divider }]}
+      accessibilityRole="button"
+      accessibilityLabel={`${coin.name}, ${coin.symbol.toUpperCase()}, ${formatCurrency(coin.currentPrice)}, ${coin.priceChangePercentage24h >= 0 ? 'up' : 'down'} ${Math.abs(coin.priceChangePercentage24h).toFixed(2)} percent`}
+      accessibilityHint="Opens coin details"
     >
       <View style={styles.left}>
         <Image

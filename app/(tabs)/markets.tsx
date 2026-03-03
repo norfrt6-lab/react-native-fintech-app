@@ -47,9 +47,9 @@ export default function MarketsScreen() {
     }
   }, [hasMore, isLoading, fetchMoreCoins]);
 
-  const handleCoinPress = (coin: CoinMarketData) => {
+  const handleCoinPress = useCallback((coin: CoinMarketData) => {
     router.push(`/coin/${coin.id}` as never);
-  };
+  }, [router]);
 
   const filteredCoins = searchQuery
     ? coins.filter(
@@ -100,6 +100,7 @@ export default function MarketsScreen() {
           />
         }
         contentContainerStyle={styles.listContent}
+        accessibilityRole="list"
       />
     </View>
     </AppErrorBoundary>

@@ -17,7 +17,7 @@ import { spacing, typography, borderRadius } from '@/src/ui/theme';
 import { PortfolioCard } from '@/src/ui/components/portfolio';
 import { HoldingListItem } from '@/src/ui/components/portfolio';
 import { PortfolioChart } from '@/src/ui/components/charts';
-import { EmptyState, AppErrorBoundary, DashboardSkeleton } from '@/src/ui/components/common';
+import { EmptyState, AppErrorBoundary, DashboardSkeleton, FadeInView } from '@/src/ui/components/common';
 import { usePortfolioStore, useMarketStore, useNotificationStore } from '@/src/store';
 import type { Holding } from '@/src/types';
 
@@ -55,9 +55,9 @@ export default function DashboardScreen() {
     updatePortfolioSummary();
   }, [fetchMarketData, updatePortfolioSummary]);
 
-  const handleHoldingPress = (holding: Holding) => {
+  const handleHoldingPress = useCallback((holding: Holding) => {
     router.push(`/coin/${holding.coinId}` as never);
-  };
+  }, [router]);
 
   if (isLoading && coins.length === 0) {
     return <DashboardSkeleton />;
@@ -81,7 +81,12 @@ export default function DashboardScreen() {
           <Text style={[styles.greeting, { color: colors.text }]}>
             {t('tabs.dashboard')}
           </Text>
-          <TouchableOpacity onPress={markAllAsRead} style={styles.bellButton}>
+          <TouchableOpacity
+            onPress={markAllAsRead}
+            style={styles.bellButton}
+            accessibilityRole="button"
+            accessibilityLabel={unreadCount > 0 ? `${unreadCount} unread notifications, tap to mark all as read` : 'No unread notifications'}
+          >
             <Text style={{ fontSize: 20 }}>🔔</Text>
             {unreadCount > 0 && (
               <View style={[styles.badge, { backgroundColor: colors.error }]}>
@@ -126,13 +131,14 @@ export default function DashboardScreen() {
               onAction={() => router.push('/(tabs)/markets')}
             />
           ) : (
-            holdings.map((holding) => (
-              <HoldingListItem
-                key={holding.coinId}
-                holding={holding}
-                onPress={handleHoldingPress}
-                hideBalance={hideBalance}
-              />
+            holdings.map((holding, index) => (
+              <FadeInView key={holding.coinId} delay={index * 60}>
+                <HoldingListItem
+                  holding={holding}
+                  onPress={handleHoldingPress}
+                  hideBalance={hideBalance}
+                />
+              </FadeInView>
             ))
           )}
         </View>

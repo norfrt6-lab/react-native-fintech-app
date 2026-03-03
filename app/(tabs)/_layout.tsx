@@ -31,6 +31,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t('tabs.dashboard'),
+          tabBarAccessibilityLabel: 'Dashboard tab',
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'chart.pie.fill', android: 'pie_chart', web: 'pie_chart' }}
@@ -44,6 +45,7 @@ export default function TabLayout() {
         name="markets"
         options={{
           title: t('tabs.markets'),
+          tabBarAccessibilityLabel: 'Markets tab',
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'chart.line.uptrend.xyaxis', android: 'trending_up', web: 'trending_up' }}
@@ -57,6 +59,7 @@ export default function TabLayout() {
         name="trade"
         options={{
           title: t('tabs.trade'),
+          tabBarAccessibilityLabel: 'Trade tab',
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'arrow.left.arrow.right', android: 'swap_horiz', web: 'swap_horiz' }}
@@ -70,6 +73,7 @@ export default function TabLayout() {
         name="activity"
         options={{
           title: t('tabs.activity'),
+          tabBarAccessibilityLabel: 'Activity tab',
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'clock.fill', android: 'history', web: 'history' }}
@@ -83,6 +87,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: t('tabs.settings'),
+          tabBarAccessibilityLabel: 'Settings tab',
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'gearshape.fill', android: 'settings', web: 'settings' }}
