@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, AppState } from 'react-native';
 import 'react-native-reanimated';
@@ -13,6 +13,7 @@ import { addNotificationResponseListener } from '@/src/core/notification';
 import { useRouter } from 'expo-router';
 import { LockScreen } from '@/src/ui/components/auth';
 import { OfflineBanner } from '@/src/ui/components/common';
+import { initializeStorage } from '@/src/lib/storage';
 import '@/src/lib/i18n';
 
 export { ErrorBoundary } from 'expo-router';
@@ -27,18 +28,23 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const [storageReady, setStorageReady] = useState(false);
 
   useEffect(() => {
     if (error) throw error;
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
+    initializeStorage().then(() => setStorageReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (loaded && storageReady) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, storageReady]);
 
-  if (!loaded) {
+  if (!loaded || !storageReady) {
     return null;
   }
 

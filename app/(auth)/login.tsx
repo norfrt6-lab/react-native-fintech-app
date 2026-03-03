@@ -30,7 +30,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { setUser, securitySettings } = useAuthStore();
+  const { login: authLogin, securitySettings } = useAuthStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -63,18 +63,13 @@ export default function LoginScreen() {
     setError('');
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const result = await authLogin(email.trim(), password);
 
-      setUser({
-        uid: 'demo-user-001',
-        email: email.trim(),
-        displayName: email.split('@')[0],
-        photoURL: null,
-        emailVerified: true,
-        createdAt: new Date().toISOString(),
-      });
-
-      router.replace('/(tabs)');
+      if (result.success) {
+        router.replace('/(tabs)');
+      } else {
+        setError(result.error ?? 'Invalid email or password');
+      }
     } catch {
       setError('Invalid email or password');
     } finally {
@@ -90,23 +85,19 @@ export default function LoginScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setLocalLoading(true);
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const loginResult = await authLogin('user@fintrack.app', 'biometric-session');
 
-      setUser({
-        uid: 'demo-user-001',
-        email: 'user@fintrack.app',
-        displayName: 'User',
-        photoURL: null,
-        emailVerified: true,
-        createdAt: new Date().toISOString(),
-      });
-
-      router.replace('/(tabs)');
+      if (loginResult.success) {
+        router.replace('/(tabs)');
+      } else {
+        setError(loginResult.error ?? 'Authentication failed');
+      }
+      setLocalLoading(false);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setError(result.error ?? 'Biometric authentication failed');
     }
-  }, [setUser, router]);
+  }, [authLogin, router]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

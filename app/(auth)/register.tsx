@@ -22,7 +22,7 @@ export default function RegisterScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { setUser } = useAuthStore();
+  const { register: authRegister } = useAuthStore();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -49,19 +49,13 @@ export default function RegisterScreen() {
     setError('');
 
     try {
-      // Simulated registration - Firebase integration in Phase 2
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const result = await authRegister(email.trim(), password, name.trim());
 
-      setUser({
-        uid: `user_${Date.now()}`,
-        email: email.trim(),
-        displayName: name.trim(),
-        photoURL: null,
-        emailVerified: false,
-        createdAt: new Date().toISOString(),
-      });
-
-      router.replace('/(tabs)');
+      if (result.success) {
+        router.replace('/(tabs)');
+      } else {
+        setError(result.error ?? 'Registration failed. Please try again.');
+      }
     } catch {
       setError('Registration failed. Please try again.');
     } finally {

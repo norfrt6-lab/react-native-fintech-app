@@ -148,7 +148,8 @@ export async function getSessionToken(): Promise<string | null> {
 export async function clearSessionToken(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(SECURE_KEYS.SESSION_TOKEN);
-  } catch {
-    // ignore
+  } catch (error) {
+    logger.error('Biometric', 'Failed to clear session token', error);
+    throw error;
   }
 }

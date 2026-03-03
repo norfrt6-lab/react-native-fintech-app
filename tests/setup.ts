@@ -5,14 +5,23 @@
 (globalThis as unknown as Record<string, unknown>).__DEV__ = true;
 
 // Mock MMKV
+const mockMMKVInstance = {
+  getString: jest.fn(),
+  set: jest.fn(),
+  remove: jest.fn(),
+  contains: jest.fn(),
+  getAllKeys: jest.fn().mockReturnValue([]),
+};
 jest.mock('react-native-mmkv', () => ({
-  createMMKV: jest.fn().mockImplementation(() => ({
-    getString: jest.fn(),
-    set: jest.fn(),
-    remove: jest.fn(),
-    contains: jest.fn(),
-    getAllKeys: jest.fn().mockReturnValue([]),
-  })),
+  createMMKV: jest.fn().mockImplementation(() => mockMMKVInstance),
+  MMKV: jest.fn(),
+}));
+
+// Mock expo-crypto
+jest.mock('expo-crypto', () => ({
+  getRandomBytesAsync: jest.fn().mockResolvedValue(new Uint8Array(32).fill(42)),
+  digestStringAsync: jest.fn().mockResolvedValue('mocked-hash'),
+  CryptoDigestAlgorithm: { SHA256: 'SHA-256', SHA512: 'SHA-512' },
 }));
 
 // Mock expo-haptics
