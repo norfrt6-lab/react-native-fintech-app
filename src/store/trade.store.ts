@@ -4,6 +4,7 @@ import { immer } from 'zustand/middleware/immer';
 import { zustandStorage } from '../lib/storage';
 import { TRADE } from '../lib/constants';
 import { logger } from '../lib/logger';
+import { divide, percentOf, toFixed } from '../lib/decimal';
 import type {
   TradeOrder,
   TradeFormData,
@@ -59,12 +60,15 @@ export const useTradeStore = create<TradeStore>()(
       executeTrade: (currentPrice) => {
         const { formData } = get();
         const amount = parseFloat(formData.amount);
-        const fee = amount * (TRADE.FEE_PERCENTAGE / 100);
-        const totalAmount = formData.side === 'buy' ? amount + fee : amount - fee;
-        const quantity = amount / currentPrice;
+        const fee = percentOf(amount, TRADE.FEE_PERCENTAGE);
+        const totalAmount = formData.side === 'buy'
+          ? toFixed(amount + fee, 8)
+          : toFixed(amount - fee, 8);
+        const quantity = divide(amount, currentPrice);
+        const timestamp = new Date().toISOString();
 
         const order: TradeOrder = {
-          id: `order_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          id: `order_${Date.now()}`,
           coinId: formData.coinId,
           symbol: '',
           name: '',
@@ -77,14 +81,14 @@ export const useTradeStore = create<TradeStore>()(
           totalAmount,
           fee,
           status: 'filled',
-          createdAt: new Date().toISOString(),
-          filledAt: new Date().toISOString(),
+          createdAt: timestamp,
+          filledAt: timestamp,
         };
 
         set((state) => {
           state.orders.unshift(order);
           state.transactions.unshift({
-            id: `txn_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+            id: `txn_${Date.now()}`,
             type: formData.side,
             coinId: formData.coinId,
             symbol: order.symbol,
@@ -94,7 +98,7 @@ export const useTradeStore = create<TradeStore>()(
             totalAmount,
             fee,
             status: 'filled',
-            createdAt: new Date().toISOString(),
+            createdAt: timestamp,
           });
         });
 

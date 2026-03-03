@@ -117,13 +117,15 @@ export const usePortfolioStore = create<PortfolioStore>()(
             totalCostBasis > 0 ? (totalProfitLoss / totalCostBasis) * 100 : 0;
 
           const dayChange = state.holdings.reduce((sum, h) => {
-            const prevPrice =
-              h.currentPrice / (1 + h.priceChangePercentage24h / 100);
+            const changeFactor = 1 + h.priceChangePercentage24h / 100;
+            if (changeFactor === 0) return sum;
+            const prevPrice = h.currentPrice / changeFactor;
             return sum + (h.currentPrice - prevPrice) * h.quantity;
           }, 0);
 
+          const previousTotal = totalValue - dayChange;
           const dayChangePercentage =
-            totalValue > 0 ? (dayChange / (totalValue - dayChange)) * 100 : 0;
+            previousTotal > 0 ? (dayChange / previousTotal) * 100 : 0;
 
           state.summary = {
             totalValue,
