@@ -21,7 +21,7 @@ import { validateTrade, executeTrade, calculateTradePreview } from '@/src/core/t
 import { scheduleTradeNotification } from '@/src/core/notification';
 import { formatCurrency, formatQuantity } from '@/src/lib/formatters';
 import { TRADE } from '@/src/lib/constants';
-import type { OrderSide, OrderType, CoinMarketData } from '@/src/types';
+import type { OrderSide, OrderType } from '@/src/types';
 
 const ORDER_TYPES: OrderType[] = ['market', 'limit', 'stop'];
 const QUICK_AMOUNTS = [25, 50, 100, 250, 500];

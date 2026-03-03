@@ -2,15 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { zustandStorage } from '../lib/storage';
-import { logger } from '../lib/logger';
 import type {
   Holding,
   PortfolioSummary,
   PortfolioHistoryPoint,
   PortfolioTimeRange,
 } from '../types';
-
-const TAG = 'PortfolioStore';
 
 interface PortfolioStore {
   holdings: Holding[];
@@ -41,7 +38,7 @@ function calculateHoldingMetrics(holding: Holding): Holding {
 
 export const usePortfolioStore = create<PortfolioStore>()(
   persist(
-    immer((set, get) => ({
+    immer((set, _get) => ({
       holdings: [],
       summary: null,
       history: [],

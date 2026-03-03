@@ -63,7 +63,7 @@ export default function MarketsScreen() {
     ({ item }: { item: CoinMarketData }) => (
       <CoinListItem coin={item} onPress={handleCoinPress} showSparkline />
     ),
-    [],
+    [handleCoinPress],
   );
 
   if (isLoading && coins.length === 0) {

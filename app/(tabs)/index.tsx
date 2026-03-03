@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
-import { spacing, typography, borderRadius } from '@/src/ui/theme';
+import { spacing, typography } from '@/src/ui/theme';
 import { PortfolioCard } from '@/src/ui/components/portfolio';
 import { HoldingListItem } from '@/src/ui/components/portfolio';
 import { PortfolioChart } from '@/src/ui/components/charts';

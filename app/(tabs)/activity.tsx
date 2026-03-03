@@ -10,8 +10,8 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
-import { spacing, typography, borderRadius } from '@/src/ui/theme';
-import { EmptyState, Badge, Divider } from '@/src/ui/components/common';
+import { spacing, typography } from '@/src/ui/theme';
+import { EmptyState, Badge } from '@/src/ui/components/common';
 import { useTradeStore } from '@/src/store';
 import { formatCurrency, formatDate, formatDateShort } from '@/src/lib/formatters';
 import type { Transaction } from '@/src/types';

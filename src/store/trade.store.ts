@@ -8,8 +8,6 @@ import type {
   TradeOrder,
   TradeFormData,
   Transaction,
-  OrderSide,
-  OrderType,
 } from '../types';
 
 const TAG = 'TradeStore';

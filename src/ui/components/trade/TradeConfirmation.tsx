@@ -18,7 +18,6 @@ import { formatCurrency, formatQuantity } from '../../../lib/formatters';
 import {
   authenticateWithBiometric,
   checkBiometricCapability,
-  getBiometricLabel,
 } from '../../../core/auth';
 import { useSettingsStore, useAuthStore } from '../../../store';
 import type { OrderSide, OrderType } from '../../../types';
