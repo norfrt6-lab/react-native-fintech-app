@@ -16,7 +16,7 @@ import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
 import { Button, Input, Card, Divider } from '@/src/ui/components/common';
 import { TradeConfirmation, TradeSuccess } from '@/src/ui/components/trade';
-import { useTradeStore, usePortfolioStore, useMarketStore, useSettingsStore } from '@/src/store';
+import { useTradeStore, usePortfolioStore, useMarketStore, useSettingsStore, useConnectivityStore } from '@/src/store';
 import { validateTrade, executeTrade, calculateTradePreview } from '@/src/core/trade';
 import { scheduleTradeNotification } from '@/src/core/notification';
 import { formatCurrency, formatQuantity } from '@/src/lib/formatters';
@@ -31,7 +31,8 @@ export default function TradeScreen() {
   const { colors } = useTheme();
   const { formData, setFormData, resetForm } = useTradeStore();
   const { balance, setBalance, addHolding, holdings } = usePortfolioStore();
-  const { coins } = useMarketStore();
+  const { coins, isDataStale } = useMarketStore();
+  const isConnected = useConnectivityStore((s) => s.status === 'online');
 
   const [activeSide, setActiveSide] = useState<OrderSide>('buy');
   const [activeOrderType, setActiveOrderType] = useState<OrderType>('market');
@@ -85,6 +86,31 @@ export default function TradeScreen() {
   const handleTradePress = () => {
     if (!selectedCoin) return;
 
+    if (!isConnected) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('No Connection', 'Cannot execute trades while offline. Please check your internet connection.');
+      return;
+    }
+
+    if (isDataStale()) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        'Stale Price Data',
+        'Market data may be outdated. Refresh prices before trading to avoid unexpected execution prices.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Trade Anyway', onPress: () => proceedWithTrade() },
+        ],
+      );
+      return;
+    }
+
+    proceedWithTrade();
+  };
+
+  const proceedWithTrade = () => {
+    if (!selectedCoin) return;
+
     const error = validateTrade({
       coinId: selectedCoin.id,
       symbol: selectedCoin.symbol,
@@ -114,7 +140,7 @@ export default function TradeScreen() {
     setIsExecuting(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const result = executeTrade({
+    const result = await executeTrade({
       coinId: selectedCoin.id,
       symbol: selectedCoin.symbol,
       name: selectedCoin.name,

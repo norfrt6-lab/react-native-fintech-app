@@ -77,45 +77,45 @@ describe('validateTrade', () => {
 });
 
 describe('executeTrade', () => {
-  it('returns success for valid trade', () => {
-    const result = executeTrade(baseInput);
+  it('returns success for valid trade', async () => {
+    const result = await executeTrade(baseInput);
     expect(result.success).toBe(true);
     expect(result.order).toBeDefined();
     expect(result.transaction).toBeDefined();
     expect(result.error).toBeUndefined();
   });
 
-  it('returns error for invalid trade', () => {
-    const result = executeTrade({ ...baseInput, amountUsd: 0 });
+  it('returns error for invalid trade', async () => {
+    const result = await executeTrade({ ...baseInput, amountUsd: 0 });
     expect(result.success).toBe(false);
     expect(result.error).toBe('Amount must be greater than 0');
     expect(result.order).toBeUndefined();
   });
 
-  it('calculates correct fee (0.1%)', () => {
-    const result = executeTrade(baseInput);
+  it('calculates correct fee (0.1%)', async () => {
+    const result = await executeTrade(baseInput);
     expect(result.order!.fee).toBeCloseTo(0.1, 4); // $100 * 0.001 = $0.10
   });
 
-  it('calculates correct quantity', () => {
-    const result = executeTrade(baseInput);
+  it('calculates correct quantity', async () => {
+    const result = await executeTrade(baseInput);
     expect(result.order!.quantity).toBeCloseTo(100 / 50000, 8); // 0.002 BTC
   });
 
-  it('sets total amount including fee for buy', () => {
-    const result = executeTrade(baseInput);
+  it('sets total amount including fee for buy', async () => {
+    const result = await executeTrade(baseInput);
     // Buy: amountUsd + fee = 100 + 0.1 = 100.1
     expect(result.order!.totalAmount).toBeCloseTo(100.1, 2);
   });
 
-  it('sets total amount minus fee for sell', () => {
-    const result = executeTrade({ ...baseInput, side: 'sell' });
+  it('sets total amount minus fee for sell', async () => {
+    const result = await executeTrade({ ...baseInput, side: 'sell' });
     // Sell: amountUsd - fee = 100 - 0.1 = 99.9
     expect(result.order!.totalAmount).toBeCloseTo(99.9, 2);
   });
 
-  it('uses limit price when available', () => {
-    const result = executeTrade({
+  it('uses limit price when available', async () => {
+    const result = await executeTrade({
       ...baseInput,
       type: 'limit',
       limitPrice: 45000,
@@ -124,15 +124,15 @@ describe('executeTrade', () => {
     expect(result.order!.quantity).toBeCloseTo(100 / 45000, 8);
   });
 
-  it('applies slippage for market orders', () => {
-    const result = executeTrade(baseInput);
+  it('applies slippage for market orders', async () => {
+    const result = await executeTrade(baseInput);
     // Price should be close but not exactly the current price due to slippage
     expect(result.order!.price).not.toBe(baseInput.currentPrice);
     expect(Math.abs(result.order!.price - baseInput.currentPrice)).toBeLessThan(50); // max ~0.05% slippage
   });
 
-  it('does not apply slippage for limit orders', () => {
-    const result = executeTrade({
+  it('does not apply slippage for limit orders', async () => {
+    const result = await executeTrade({
       ...baseInput,
       type: 'limit',
       limitPrice: 45000,
@@ -140,23 +140,23 @@ describe('executeTrade', () => {
     expect(result.order!.price).toBe(45000);
   });
 
-  it('generates unique order and transaction IDs', () => {
-    const result1 = executeTrade(baseInput);
-    const result2 = executeTrade(baseInput);
+  it('generates unique order and transaction IDs', async () => {
+    const result1 = await executeTrade(baseInput);
+    const result2 = await executeTrade(baseInput);
     expect(result1.order!.id).not.toBe(result2.order!.id);
     expect(result1.transaction!.id).not.toBe(result2.transaction!.id);
   });
 
-  it('sets correct order status and timestamps', () => {
-    const result = executeTrade(baseInput);
+  it('sets correct order status and timestamps', async () => {
+    const result = await executeTrade(baseInput);
     expect(result.order!.status).toBe('filled');
     expect(result.order!.createdAt).toBeDefined();
     expect(result.order!.filledAt).toBeDefined();
     expect(result.order!.createdAt).toBe(result.order!.filledAt);
   });
 
-  it('creates matching transaction', () => {
-    const result = executeTrade(baseInput);
+  it('creates matching transaction', async () => {
+    const result = await executeTrade(baseInput);
     expect(result.transaction!.coinId).toBe(baseInput.coinId);
     expect(result.transaction!.symbol).toBe(baseInput.symbol);
     expect(result.transaction!.type).toBe(baseInput.side);

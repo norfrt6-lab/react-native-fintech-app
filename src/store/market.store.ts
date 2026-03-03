@@ -4,6 +4,7 @@ import { immer } from 'zustand/middleware/immer';
 import { zustandStorage } from '../lib/storage';
 import { marketApi } from '../api/market';
 import { logger } from '../lib/logger';
+import { MARKET } from '../lib/constants';
 import type {
   CoinMarketData,
   CoinDetail,
@@ -37,6 +38,8 @@ interface MarketStore {
   searchCoins: (query: string) => Promise<CoinMarketData[]>;
   toggleWatchlist: (coinId: string) => void;
   isInWatchlist: (coinId: string) => boolean;
+  isDataStale: () => boolean;
+  getLastFetchedAt: () => number | null;
   setFilters: (filters: Partial<MarketFilters>) => void;
   setTimeRange: (range: TimeRange) => void;
   clearError: () => void;
@@ -187,6 +190,14 @@ export const useMarketStore = create<MarketStore>()(
         }),
 
       isInWatchlist: (coinId) => get().watchlist.includes(coinId),
+
+      isDataStale: () => {
+        const { lastFetchedAt } = get();
+        if (!lastFetchedAt) return true;
+        return Date.now() - lastFetchedAt > MARKET.MARKET_DATA_STALE_TIME;
+      },
+
+      getLastFetchedAt: () => get().lastFetchedAt,
 
       setFilters: (filters) =>
         set((state) => {

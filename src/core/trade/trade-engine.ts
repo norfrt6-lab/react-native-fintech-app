@@ -1,5 +1,7 @@
 import { TRADE } from '../../lib/constants';
 import { logger } from '../../lib/logger';
+import { divide, multiply, percentOf, toFixed } from '../../lib/decimal';
+import { secureRandom, secureRandomId } from '../../lib/crypto-utils';
 import type { TradeOrder, OrderSide, OrderType, Transaction } from '../../types';
 
 const TAG = 'TradeEngine';
@@ -34,11 +36,11 @@ export function validateTrade(input: TradeInput): string | null {
     return 'Invalid price data';
   }
 
-  const fee = input.amountUsd * (TRADE.FEE_PERCENTAGE / 100);
+  const fee = percentOf(input.amountUsd, TRADE.FEE_PERCENTAGE);
   const totalCost = input.side === 'buy' ? input.amountUsd + fee : 0;
 
   if (input.side === 'buy' && totalCost > input.availableBalance) {
-    return `Insufficient balance. Need ${totalCost.toFixed(2)} but have ${input.availableBalance.toFixed(2)}`;
+    return `Insufficient balance. Need ${toFixed(totalCost, 2)} but have ${toFixed(input.availableBalance, 2)}`;
   }
 
   if (input.type === 'limit' && (!input.limitPrice || input.limitPrice <= 0)) {
@@ -60,28 +62,34 @@ export function validateTrade(input: TradeInput): string | null {
   return null;
 }
 
-export function executeTrade(input: TradeInput): TradeResult {
+export async function executeTrade(input: TradeInput): Promise<TradeResult> {
   const validationError = validateTrade(input);
   if (validationError) {
     return { success: false, error: validationError };
   }
 
-  const fee = input.amountUsd * (TRADE.FEE_PERCENTAGE / 100);
+  const fee = percentOf(input.amountUsd, TRADE.FEE_PERCENTAGE);
   const effectivePrice = input.type === 'limit' && input.limitPrice
     ? input.limitPrice
     : input.currentPrice;
-  const quantity = input.amountUsd / effectivePrice;
-  const totalAmount = input.side === 'buy' ? input.amountUsd + fee : input.amountUsd - fee;
+  const quantity = divide(input.amountUsd, effectivePrice);
+  const totalAmount = input.side === 'buy'
+    ? toFixed(input.amountUsd + fee, 8)
+    : toFixed(input.amountUsd - fee, 8);
 
   const timestamp = new Date().toISOString();
-  const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-  const txnId = `txn_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  const orderId = await secureRandomId('order');
+  const txnId = await secureRandomId('txn');
 
-  // Simulate slippage for market orders (0.01% - 0.05%)
-  const slippage = input.type === 'market'
-    ? effectivePrice * (0.0001 + Math.random() * 0.0004) * (input.side === 'buy' ? 1 : -1)
-    : 0;
-  const executedPrice = effectivePrice + slippage;
+  // Simulate slippage for market orders (0.01% - 0.05%) using crypto-secure random
+  let executedPrice = effectivePrice;
+  if (input.type === 'market') {
+    const slippagePct = await secureRandom(0.0001, 0.0005);
+    const slippage = multiply(effectivePrice, slippagePct);
+    executedPrice = input.side === 'buy'
+      ? toFixed(effectivePrice + slippage, 8)
+      : toFixed(effectivePrice - slippage, 8);
+  }
 
   const order: TradeOrder = {
     id: orderId,
@@ -125,9 +133,9 @@ export function calculateTradePreview(
   currentPrice: number,
   side: OrderSide,
 ) {
-  const fee = amountUsd * (TRADE.FEE_PERCENTAGE / 100);
-  const total = side === 'buy' ? amountUsd + fee : amountUsd - fee;
-  const quantity = amountUsd / currentPrice;
+  const fee = percentOf(amountUsd, TRADE.FEE_PERCENTAGE);
+  const total = side === 'buy' ? toFixed(amountUsd + fee, 8) : toFixed(amountUsd - fee, 8);
+  const quantity = divide(amountUsd, currentPrice);
 
   return { fee, total, quantity };
 }
