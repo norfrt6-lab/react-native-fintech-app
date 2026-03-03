@@ -16,7 +16,7 @@ import { spacing, typography } from '@/src/ui/theme';
 import { PortfolioCard } from '@/src/ui/components/portfolio';
 import { HoldingListItem } from '@/src/ui/components/portfolio';
 import { PortfolioChart } from '@/src/ui/components/charts';
-import { EmptyState } from '@/src/ui/components/common';
+import { EmptyState, AppErrorBoundary, DashboardSkeleton } from '@/src/ui/components/common';
 import { usePortfolioStore, useMarketStore } from '@/src/store';
 import type { Holding } from '@/src/types';
 
@@ -37,7 +37,11 @@ export default function DashboardScreen() {
     updatePortfolioSummary,
   } = usePortfolioStore();
 
-  const { fetchMarketData, isRefreshing } = useMarketStore();
+  const { fetchMarketData, isRefreshing, isLoading, coins } = useMarketStore();
+
+  useEffect(() => {
+    fetchMarketData();
+  }, [fetchMarketData]);
 
   useEffect(() => {
     updatePortfolioSummary();
@@ -52,7 +56,12 @@ export default function DashboardScreen() {
     router.push(`/coin/${holding.coinId}` as never);
   };
 
+  if (isLoading && coins.length === 0) {
+    return <DashboardSkeleton />;
+  }
+
   return (
+    <AppErrorBoundary>
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.lg }]}
@@ -114,6 +123,7 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
     </View>
+    </AppErrorBoundary>
   );
 }
 
