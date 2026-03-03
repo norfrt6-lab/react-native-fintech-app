@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,23 +12,46 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StatusBar } from 'expo-status-bar';
+import * as Haptics from 'expo-haptics';
 
-import { Button, Input } from '@/src/ui/components/common';
+import { Button, Input, Divider } from '@/src/ui/components/common';
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { useAuthStore } from '@/src/store';
-import { spacing, typography } from '@/src/ui/theme';
+import { spacing, typography, borderRadius } from '@/src/ui/theme';
+import {
+  checkBiometricCapability,
+  authenticateWithBiometric,
+  isBiometricEnrolled,
+  getBiometricLabel,
+} from '@/src/core/auth';
+import type { BiometricType } from '@/src/types';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { setUser, setLoading } = useAuthStore();
+  const { setUser, securitySettings } = useAuthStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLocalLoading] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricType, setBiometricType] = useState<BiometricType>('none');
+
+  useEffect(() => {
+    if (securitySettings.biometricEnabled) {
+      Promise.all([checkBiometricCapability(), isBiometricEnrolled()]).then(
+        ([capability, enrolled]) => {
+          if (capability.isAvailable && enrolled) {
+            setBiometricAvailable(true);
+            setBiometricType(capability.biometricType);
+          }
+        },
+      );
+    }
+  }, [securitySettings.biometricEnabled]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -40,7 +63,6 @@ export default function LoginScreen() {
     setError('');
 
     try {
-      // Simulated auth - Firebase integration in Phase 2
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       setUser({
@@ -59,6 +81,32 @@ export default function LoginScreen() {
       setLocalLoading(false);
     }
   };
+
+  const handleBiometricLogin = useCallback(async () => {
+    setError('');
+    const result = await authenticateWithBiometric('Sign in to FinTrack');
+
+    if (result.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setLocalLoading(true);
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      setUser({
+        uid: 'demo-user-001',
+        email: 'user@fintrack.app',
+        displayName: 'User',
+        photoURL: null,
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
+      });
+
+      router.replace('/(tabs)');
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setError(result.error ?? 'Biometric authentication failed');
+    }
+  }, [setUser, router]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -85,6 +133,29 @@ export default function LoginScreen() {
               Sign in to access your portfolio
             </Text>
           </View>
+
+          {biometricAvailable && (
+            <>
+              <TouchableOpacity
+                onPress={handleBiometricLogin}
+                style={[styles.biometricButton, { borderColor: colors.primary, backgroundColor: colors.surface }]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.biometricIcon}>
+                  {biometricType === 'facial' ? '👤' : '👆'}
+                </Text>
+                <Text style={[styles.biometricText, { color: colors.primary }]}>
+                  Sign in with {getBiometricLabel(biometricType)}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.dividerRow}>
+                <Divider style={styles.dividerLine} />
+                <Text style={[styles.dividerText, { color: colors.textTertiary }]}>or</Text>
+                <Divider style={styles.dividerLine} />
+              </View>
+            </>
+          )}
 
           <View style={styles.form}>
             <Input
@@ -176,6 +247,34 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...typography.body,
+  },
+  biometricButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  biometricIcon: {
+    fontSize: 24,
+  },
+  biometricText: {
+    ...typography.button,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    gap: spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+  },
+  dividerText: {
+    ...typography.caption,
   },
   form: {},
   error: {
