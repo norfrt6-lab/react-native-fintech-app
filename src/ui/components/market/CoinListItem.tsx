@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useTheme } from '../../theme/ThemeContext';
 import { spacing, borderRadius, typography } from '../../theme';
 import { PriceChange } from '../common/PriceChange';
+import { SparklineChart } from '../charts';
 import { formatCurrency } from '../../../lib/formatters';
 import type { CoinMarketData } from '../../../types';
 
@@ -42,6 +43,15 @@ export const CoinListItem = memo(function CoinListItem({
           </Text>
         </View>
       </View>
+
+      {showSparkline && coin.sparklineIn7d?.price && (
+        <SparklineChart
+          data={coin.sparklineIn7d.price}
+          width={80}
+          height={32}
+          style={styles.sparkline}
+        />
+      )}
 
       <View style={styles.right}>
         <Text style={[styles.price, { color: colors.text }]}>
@@ -82,6 +92,9 @@ const styles = StyleSheet.create({
   symbol: {
     ...typography.caption,
     marginTop: 2,
+  },
+  sparkline: {
+    marginHorizontal: spacing.sm,
   },
   right: {
     alignItems: 'flex-end',
