@@ -4,7 +4,6 @@ const config = getDefaultConfig(__dirname);
 
 // Packages that use native APIs or import.meta and break on web
 const nativeOnlyPackages = [
-  '@sentry/react-native',
   'expo-screen-capture',
   'expo-haptics',
   'expo-local-authentication',
@@ -15,10 +14,16 @@ const nativeOnlyPackages = [
   'expo-crypto',
 ];
 
+// Scoped packages where ALL sub-packages should be blocked
+const nativeOnlyScopes = ['@sentry/'];
+
 // On web, resolve native-only packages to an empty module
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (platform === 'web' && nativeOnlyPackages.some((pkg) => moduleName === pkg || moduleName.startsWith(pkg + '/'))) {
+  if (platform === 'web' && (
+    nativeOnlyPackages.some((pkg) => moduleName === pkg || moduleName.startsWith(pkg + '/')) ||
+    nativeOnlyScopes.some((scope) => moduleName.startsWith(scope))
+  )) {
     return {
       filePath: require.resolve('./src/lib/__web-empty-module.js'),
       type: 'sourceFile',
