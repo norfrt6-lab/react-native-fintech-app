@@ -83,25 +83,23 @@ jobs:
       - name: Run component tests
         run: npx jest --selectProjects component --ci
 
-  eas-build:
-    name: EAS Build (Preview)
-    needs: [lint, typecheck, test-unit, test-component]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - run: npm ci
-
-      - uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Build preview
-        run: eas build --platform all --profile preview --non-interactive
+  # EAS Build requires a configured Expo project (eas init).
+  # Uncomment once the project is linked via: npx eas init --id <project-uuid>
+  # eas-build:
+  #   name: EAS Build (Preview)
+  #   needs: [lint, typecheck, test-unit, test-component]
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #         cache: npm
+  #     - run: npm ci
+  #     - uses: expo/expo-github-action@v8
+  #       with:
+  #         eas-version: latest
+  #         token: ${{ secrets.EXPO_TOKEN }}
+  #     - name: Build preview
+  #       run: eas build --platform all --profile preview --non-interactive

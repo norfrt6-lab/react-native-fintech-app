@@ -11,6 +11,8 @@ const nativeOnlyPackages = [
   'expo-secure-store',
   'react-native-mmkv',
   'expo-file-system/legacy',
+  'expo-notifications',
+  'expo-crypto',
 ];
 
 // On web, resolve native-only packages to an empty module
