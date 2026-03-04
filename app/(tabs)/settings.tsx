@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import * as WebBrowser from 'expo-web-browser';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
+import { ScreenErrorBoundary } from '@/src/ui/components/common';
 import { useSettingsStore, useAuthStore, useNotificationStore } from '@/src/store';
 import { APP_VERSION } from '@/src/lib/constants';
 import {
@@ -69,7 +71,7 @@ export default function SettingsScreen() {
           biometricType,
         });
       } else {
-        Alert.alert('Enrollment Failed', 'Could not enable biometric authentication.');
+        Alert.alert(t('settings.enrollmentFailed'), t('settings.enrollmentFailedMessage'));
       }
     } else {
       await unenrollBiometric();
@@ -99,6 +101,8 @@ export default function SettingsScreen() {
       disabled={!onPress}
       style={[styles.settingRow, { borderBottomColor: colors.divider }]}
       activeOpacity={0.6}
+      accessibilityRole={onPress ? 'button' : 'text'}
+      accessibilityLabel={value ? `${label}: ${value}` : label}
     >
       <Text style={[styles.settingLabel, { color: colors.text }]}>{label}</Text>
       {value && (
@@ -118,7 +122,12 @@ export default function SettingsScreen() {
     value: boolean;
     onToggle: (val: boolean) => void;
   }) => (
-    <View style={[styles.settingRow, { borderBottomColor: colors.divider }]}>
+    <View
+      style={[styles.settingRow, { borderBottomColor: colors.divider }]}
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: value }}
+    >
       <Text style={[styles.settingLabel, { color: colors.text }]}>{label}</Text>
       <Switch
         value={value}
@@ -130,6 +139,7 @@ export default function SettingsScreen() {
   );
 
   return (
+    <ScreenErrorBoundary>
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={[styles.title, { color: colors.text }]}>
@@ -142,7 +152,7 @@ export default function SettingsScreen() {
           </Text>
           {biometricHardwareAvailable && (
             <SettingToggle
-              label={`${getBiometricLabel(biometricType)} Login`}
+              label={t('settings.biometricLogin', { type: getBiometricLabel(biometricType) })}
               value={securitySettings.biometricEnabled}
               onToggle={handleBiometricToggle}
             />
@@ -153,7 +163,7 @@ export default function SettingsScreen() {
             onToggle={(val) => updateSecuritySettings({ hideBalance: val })}
           />
           <SettingToggle
-            label="Biometric Trade Confirmation"
+            label={t('settings.biometricTradeConfirmation')}
             value={biometricTradeConfirmation}
             onToggle={setBiometricTradeConfirmation}
           />
@@ -180,6 +190,9 @@ export default function SettingsScreen() {
                     borderColor: colors.border,
                   },
                 ]}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: theme === mode }}
+                accessibilityLabel={`${mode} theme`}
               >
                 <Text
                   style={[
@@ -217,21 +230,21 @@ export default function SettingsScreen() {
             onToggle={setHapticFeedback}
           />
           <SettingRow
-            label="Active Price Alerts"
+            label={t('settings.activePriceAlerts')}
             value={`${activeAlertCount}`}
           />
           <SettingRow
-            label="Clear Triggered Alerts"
+            label={t('settings.clearTriggeredAlerts')}
             onPress={() => {
               clearTriggeredAlerts();
-              Alert.alert('Cleared', 'Triggered alerts have been removed.');
+              Alert.alert(t('settings.cleared'), t('settings.triggeredAlertsCleared'));
             }}
           />
           <SettingRow
-            label="Clear Notification History"
+            label={t('settings.clearNotificationHistory')}
             onPress={() => {
               clearHistory();
-              Alert.alert('Cleared', 'Notification history has been cleared.');
+              Alert.alert(t('settings.cleared'), t('settings.notificationHistoryCleared'));
             }}
           />
         </View>
@@ -244,11 +257,21 @@ export default function SettingsScreen() {
             label={t('settings.version')}
             value={APP_VERSION}
           />
+          <SettingRow
+            label={t('settings.privacyPolicy')}
+            onPress={() => WebBrowser.openBrowserAsync('https://fintrack.app/privacy')}
+          />
+          <SettingRow
+            label={t('settings.termsOfService')}
+            onPress={() => WebBrowser.openBrowserAsync('https://fintrack.app/terms')}
+          />
         </View>
 
         <TouchableOpacity
           onPress={handleLogout}
           style={[styles.logoutButton, { borderColor: colors.error }]}
+          accessibilityRole="button"
+          accessibilityLabel="Log out"
         >
           <Text style={[styles.logoutText, { color: colors.error }]}>
             {t('auth.logout')}
@@ -256,6 +279,7 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
+    </ScreenErrorBoundary>
   );
 }
 

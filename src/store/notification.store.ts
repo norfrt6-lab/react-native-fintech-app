@@ -3,12 +3,14 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { zustandStorage } from '../lib/storage';
 import { logger } from '../lib/logger';
+import { getAnalytics } from '../lib/analytics';
 import {
   createAlert,
   evaluateAlerts,
   processTriggeredAlerts,
   requestPermissions,
   configureAndroidChannel,
+  registerForPushNotifications,
 } from '../core/notification';
 import type { PriceAlert, NotificationRecord, CoinMarketData } from '../types';
 
@@ -20,8 +22,10 @@ interface NotificationStore {
   history: NotificationRecord[];
   hasPermission: boolean;
   isInitialized: boolean;
+  pushToken: string | null;
 
   initialize: () => Promise<void>;
+  registerPushToken: () => Promise<void>;
   addAlert: (coin: CoinMarketData, condition: 'above' | 'below', targetPrice: number) => PriceAlert;
   removeAlert: (alertId: string) => void;
   checkAlerts: (marketData: CoinMarketData[]) => Promise<void>;
@@ -40,6 +44,7 @@ export const useNotificationStore = create<NotificationStore>()(
       history: [],
       hasPermission: false,
       isInitialized: false,
+      pushToken: null,
 
       initialize: async () => {
         if (get().isInitialized) return;
@@ -55,6 +60,16 @@ export const useNotificationStore = create<NotificationStore>()(
         logger.info(TAG, `Initialized, permission: ${granted}`);
       },
 
+      registerPushToken: async () => {
+        const token = await registerForPushNotifications();
+        if (token) {
+          set((state) => {
+            state.pushToken = token;
+          });
+          logger.info(TAG, 'Push token registered');
+        }
+      },
+
       addAlert: (coin, condition, targetPrice) => {
         const alert = createAlert(coin, condition, targetPrice);
 
@@ -62,6 +77,10 @@ export const useNotificationStore = create<NotificationStore>()(
           state.alerts.push(alert);
         });
 
+        getAnalytics().track({
+          name: 'price_alert_created',
+          properties: { coinId: coin.id, targetPrice, condition },
+        });
         logger.info(TAG, `Alert created: ${coin.symbol} ${condition} $${targetPrice}`);
         return alert;
       },

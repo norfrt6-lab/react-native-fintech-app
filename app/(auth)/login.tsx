@@ -157,6 +157,7 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
+              testID="login-email-input"
             />
 
             <Input
@@ -171,6 +172,7 @@ export default function LoginScreen() {
                 </Text>
               }
               onRightIconPress={() => setShowPassword(!showPassword)}
+              testID="login-password-input"
             />
 
             {error ? (
@@ -191,6 +193,7 @@ export default function LoginScreen() {
               fullWidth
               loading={loading}
               style={styles.loginButton}
+              testID="login-submit-button"
             />
           </View>
 

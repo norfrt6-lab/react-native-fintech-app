@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, Suspense, lazy } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -16,8 +17,11 @@ import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography } from '@/src/ui/theme';
 import { PortfolioCard } from '@/src/ui/components/portfolio';
 import { HoldingListItem } from '@/src/ui/components/portfolio';
-import { PortfolioChart } from '@/src/ui/components/charts';
-import { EmptyState, AppErrorBoundary, DashboardSkeleton, FadeInView, StaleBanner, ErrorBanner } from '@/src/ui/components/common';
+import { EmptyState, ScreenErrorBoundary, DashboardSkeleton, FadeInView, StaleBanner, ErrorBanner } from '@/src/ui/components/common';
+
+const PortfolioChart = lazy(() =>
+  import('@/src/ui/components/charts').then((m) => ({ default: m.PortfolioChart }))
+);
 import { usePortfolioStore, useMarketStore, useNotificationStore } from '@/src/store';
 import type { Holding } from '@/src/types';
 
@@ -64,7 +68,7 @@ export default function DashboardScreen() {
   }
 
   return (
-    <AppErrorBoundary>
+    <ScreenErrorBoundary>
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.lg }]}
@@ -122,11 +126,13 @@ export default function DashboardScreen() {
 
         {history.length >= 2 && (
           <View style={styles.chartContainer}>
-            <PortfolioChart
-              data={history}
-              width={screenWidth - spacing.lg * 2}
-              height={180}
-            />
+            <Suspense fallback={<ActivityIndicator color={colors.primary} />}>
+              <PortfolioChart
+                data={history}
+                width={screenWidth - spacing.lg * 2}
+                height={180}
+              />
+            </Suspense>
           </View>
         )}
 
@@ -156,7 +162,7 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
     </View>
-    </AppErrorBoundary>
+    </ScreenErrorBoundary>
   );
 }
 

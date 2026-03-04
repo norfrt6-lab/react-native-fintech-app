@@ -3,8 +3,13 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
+import * as SecureStore from 'expo-secure-store';
 import { API } from '../lib/constants';
+import { StorageKeys } from '../lib/storage';
 import { logger } from '../lib/logger';
+import { recordMetric } from '../lib/metrics';
+import { apiRateLimiter } from './rate-limiter';
+import { attachSSLValidation } from '../lib/ssl-pinning';
 
 const TAG = 'ApiClient';
 
@@ -19,10 +24,25 @@ function createApiClient(): AxiosInstance {
   });
 
   client.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
+    async (config: InternalAxiosRequestConfig) => {
+      await apiRateLimiter.acquire();
+
+      (config as InternalAxiosRequestConfig & { _requestStartTime?: number })._requestStartTime =
+        Date.now();
+
       logger.debug(TAG, `${config.method?.toUpperCase()} ${config.url}`, {
         params: config.params,
       });
+
+      try {
+        const token = await SecureStore.getItemAsync(StorageKeys.AUTH_TOKEN);
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch {
+        logger.debug(TAG, 'Could not read auth token from SecureStore');
+      }
+
       return config;
     },
     (error: AxiosError) => {
@@ -33,6 +53,12 @@ function createApiClient(): AxiosInstance {
 
   client.interceptors.response.use(
     (response) => {
+      const startTime =
+        (response.config as InternalAxiosRequestConfig & { _requestStartTime?: number })
+          ._requestStartTime;
+      if (startTime) {
+        recordMetric('api_request_duration', Date.now() - startTime);
+      }
       logger.debug(TAG, `Response ${response.status} ${response.config.url}`);
       return response;
     },
@@ -58,6 +84,15 @@ function createApiClient(): AxiosInstance {
         return client(config);
       }
 
+      if (error.response?.status === 401) {
+        logger.warn(TAG, 'Unauthorized - token may be expired');
+        try {
+          await SecureStore.deleteItemAsync(StorageKeys.AUTH_TOKEN);
+        } catch {
+          // Best effort cleanup
+        }
+      }
+
       if (error.response) {
         logger.error(TAG, `API Error ${error.response.status}`, {
           url: config.url,
@@ -72,6 +107,8 @@ function createApiClient(): AxiosInstance {
       return Promise.reject(error);
     },
   );
+
+  attachSSLValidation(client);
 
   return client;
 }

@@ -18,6 +18,8 @@ interface HeaderProps {
   onLeftPress?: () => void;
   onRightPress?: () => void;
   transparent?: boolean;
+  leftActionLabel?: string;
+  rightActionLabel?: string;
 }
 
 export function Header({
@@ -28,6 +30,8 @@ export function Header({
   onLeftPress,
   onRightPress,
   transparent = false,
+  leftActionLabel,
+  rightActionLabel,
 }: HeaderProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -47,7 +51,12 @@ export function Header({
       <View style={styles.content}>
         <View style={styles.left}>
           {leftAction && (
-            <TouchableOpacity onPress={onLeftPress} style={styles.action}>
+            <TouchableOpacity
+              onPress={onLeftPress}
+              style={styles.action}
+              accessibilityRole="button"
+              accessibilityLabel={leftActionLabel ?? 'Navigation action'}
+            >
               {leftAction}
             </TouchableOpacity>
           )}
@@ -67,7 +76,12 @@ export function Header({
         </View>
         <View style={styles.right}>
           {rightAction && (
-            <TouchableOpacity onPress={onRightPress} style={styles.action}>
+            <TouchableOpacity
+              onPress={onRightPress}
+              style={styles.action}
+              accessibilityRole="button"
+              accessibilityLabel={rightActionLabel ?? 'Action'}
+            >
               {rightAction}
             </TouchableOpacity>
           )}

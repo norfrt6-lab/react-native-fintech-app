@@ -6,6 +6,7 @@ import {
   type ConnectionStatus,
   type SyncAction,
 } from '../core/sync';
+import { syncTrades, syncSettings, syncWatchlist } from '../core/data';
 import { logger } from '../lib/logger';
 
 const TAG = 'ConnectivityStore';
@@ -24,23 +25,21 @@ interface ConnectivityStore {
 }
 
 async function processAction(action: SyncAction): Promise<boolean> {
-  // Route sync actions to appropriate handlers based on action type
+  const uid = action.payload.uid as string | undefined;
+  if (!uid) {
+    logger.warn(TAG, `Sync action ${action.id} missing uid`);
+    return false;
+  }
+
   switch (action.type) {
     case 'trade':
-      // Trade sync would send trade data to the backend
-      // In production, this would call the trade API
-      logger.info(TAG, `Processing trade sync: ${action.id}`);
-      return true;
+      return syncTrades(uid, { transactions: action.payload.transactions as unknown[] });
 
     case 'settings':
-      // Settings sync would push user preferences to the backend
-      logger.info(TAG, `Processing settings sync: ${action.id}`);
-      return true;
+      return syncSettings(uid, action.payload.settings as Record<string, unknown>);
 
     case 'watchlist':
-      // Watchlist sync would update the user's watchlist on the backend
-      logger.info(TAG, `Processing watchlist sync: ${action.id}`);
-      return true;
+      return syncWatchlist(uid, { items: action.payload.items as string[] });
 
     default:
       logger.warn(TAG, `Unknown sync action type: ${action.type}`);

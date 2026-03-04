@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { zustandStorage } from '../lib/storage';
+import { fetchPortfolio } from '../core/data';
+import { logger } from '../lib/logger';
 import type {
   Holding,
   PortfolioSummary,
@@ -26,6 +28,7 @@ interface PortfolioStore {
   setHideBalance: (hide: boolean) => void;
   setTimeRange: (range: PortfolioTimeRange) => void;
   addHistoryPoint: (point: PortfolioHistoryPoint) => void;
+  loadFromRemote: (uid: string) => Promise<void>;
 }
 
 function calculateHoldingMetrics(holding: Holding): Holding {
@@ -161,6 +164,24 @@ export const usePortfolioStore = create<PortfolioStore>()(
             state.history = state.history.slice(-365);
           }
         }),
+
+      loadFromRemote: async (uid) => {
+        try {
+          const data = await fetchPortfolio(uid);
+          if (data && Array.isArray(data.holdings) && data.holdings.length > 0) {
+            set((state) => {
+              state.holdings = data.holdings as Holding[];
+              state.balance = (data.balance as number) ?? state.balance;
+              if (Array.isArray(data.history)) {
+                state.history = data.history as PortfolioHistoryPoint[];
+              }
+            });
+            logger.info('PortfolioStore', 'Loaded portfolio from remote');
+          }
+        } catch (error) {
+          logger.error('PortfolioStore', 'Failed to load remote portfolio', error);
+        }
+      },
     })),
     {
       name: 'portfolio-store',

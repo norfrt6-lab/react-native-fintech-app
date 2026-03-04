@@ -135,6 +135,37 @@ export function configureAndroidChannel(): void {
   logger.info(TAG, 'Android notification channels configured');
 }
 
+export async function registerForPushNotifications(): Promise<string | null> {
+  try {
+    const granted = await requestPermissions();
+    if (!granted) {
+      logger.warn(TAG, 'Push token registration skipped: permission denied');
+      return null;
+    }
+
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: 'fintrack-portfolio-app',
+    });
+
+    logger.info(TAG, `Expo push token obtained: ${tokenData.data.slice(0, 20)}...`);
+    return tokenData.data;
+  } catch (error) {
+    logger.error(TAG, 'Failed to get Expo push token', error);
+    return null;
+  }
+}
+
+export async function getDevicePushToken(): Promise<string | null> {
+  try {
+    const tokenData = await Notifications.getDevicePushTokenAsync();
+    logger.info(TAG, `Device push token obtained (${tokenData.type})`);
+    return tokenData.data as string;
+  } catch (error) {
+    logger.error(TAG, 'Failed to get device push token', error);
+    return null;
+  }
+}
+
 export function addNotificationReceivedListener(
   callback: (notification: Notifications.Notification) => void,
 ): Notifications.EventSubscription {
