@@ -81,6 +81,12 @@
         {
           "faceIDPermission": "Allow FinTrack to use Face ID for authentication"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": []
+        }
       ]
     ],
     "updates": {

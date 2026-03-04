@@ -118,13 +118,13 @@ export function configureAndroidChannel(): void {
     name: 'Price Alerts',
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
-    sound: 'default',
+    sound: null,
   });
 
   Notifications.setNotificationChannelAsync('trades', {
     name: 'Trade Notifications',
     importance: Notifications.AndroidImportance.HIGH,
-    sound: 'default',
+    sound: null,
   });
 
   Notifications.setNotificationChannelAsync('general', {
@@ -136,6 +136,12 @@ export function configureAndroidChannel(): void {
 }
 
 export async function registerForPushNotifications(): Promise<string | null> {
+  // Push tokens require Firebase (FCM) on Android — skip in dev builds without it
+  if (__DEV__) {
+    logger.info(TAG, 'Push token registration skipped in dev mode');
+    return null;
+  }
+
   try {
     const granted = await requestPermissions();
     if (!granted) {
