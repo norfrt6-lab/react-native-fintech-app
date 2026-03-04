@@ -13,9 +13,19 @@ const resources = {
 };
 
 const deviceLanguage = getLocales()[0]?.languageCode ?? 'en';
-const supportedLanguage = Object.keys(resources).includes(deviceLanguage)
-  ? deviceLanguage
-  : 'en';
+
+function getInitialLanguage(): string {
+  try {
+    const { useSettingsStore } = require('../../store/settings.store');
+    const stored = useSettingsStore.getState().language;
+    if (stored && Object.keys(resources).includes(stored)) return stored;
+  } catch {
+    // Store not ready yet
+  }
+  return Object.keys(resources).includes(deviceLanguage) ? deviceLanguage : 'en';
+}
+
+const supportedLanguage = getInitialLanguage();
 
 i18n.use(initReactI18next).init({
   resources,

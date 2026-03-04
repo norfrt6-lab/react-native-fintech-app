@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -52,6 +53,20 @@ export default function LoginScreen() {
       );
     }
   }, [securitySettings.biometricEnabled]);
+
+  const handleForgotPassword = () => {
+    if (!email.trim()) {
+      Alert.alert(
+        t('auth.forgotPassword'),
+        'Please enter your email address first, then tap Forgot Password.',
+      );
+      return;
+    }
+    Alert.alert(
+      t('auth.forgotPassword'),
+      'If an account exists with this email, a password reset link has been sent.',
+    );
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -179,7 +194,7 @@ export default function LoginScreen() {
               <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
             ) : null}
 
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
               <Text style={[styles.forgotText, { color: colors.primary }]}>
                 {t('auth.forgotPassword')}
               </Text>

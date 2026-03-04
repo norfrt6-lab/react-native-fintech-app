@@ -22,6 +22,7 @@ interface PortfolioStore {
 
   addHolding: (holding: Omit<Holding, 'value' | 'costBasis' | 'profitLoss' | 'profitLossPercentage' | 'allocation'>) => void;
   updateHoldingPrice: (coinId: string, currentPrice: number, priceChange24h: number) => void;
+  reduceHolding: (coinId: string, soldQuantity: number) => void;
   removeHolding: (coinId: string) => void;
   updatePortfolioSummary: () => void;
   setBalance: (balance: number) => void;
@@ -91,6 +92,24 @@ export const usePortfolioStore = create<PortfolioStore>()(
             const updated = calculateHoldingMetrics(holding);
             Object.assign(holding, updated);
 
+            const totalValue = state.holdings.reduce((sum, h) => sum + h.value, 0);
+            state.holdings.forEach((h) => {
+              h.allocation = totalValue > 0 ? (h.value / totalValue) * 100 : 0;
+            });
+          }
+        }),
+
+      reduceHolding: (coinId, soldQuantity) =>
+        set((state) => {
+          const holding = state.holdings.find((h) => h.coinId === coinId);
+          if (holding) {
+            holding.quantity -= soldQuantity;
+            if (holding.quantity <= 0.00000001) {
+              state.holdings = state.holdings.filter((h) => h.coinId !== coinId);
+            } else {
+              const updated = calculateHoldingMetrics(holding);
+              Object.assign(holding, updated);
+            }
             const totalValue = state.holdings.reduce((sum, h) => sum + h.value, 0);
             state.holdings.forEach((h) => {
               h.allocation = totalValue > 0 ? (h.value / totalValue) * 100 : 0;

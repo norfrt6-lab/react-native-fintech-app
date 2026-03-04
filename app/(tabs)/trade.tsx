@@ -29,6 +29,7 @@ import { scheduleTradeNotification } from '@/src/core/notification';
 import { formatCurrency, formatQuantity } from '@/src/lib/formatters';
 import { TRADE } from '@/src/lib/constants';
 import { getAnalytics } from '@/src/lib/analytics';
+import { syncQueue } from '@/src/core/sync';
 import type { OrderSide, OrderType } from '@/src/types';
 
 const ORDER_TYPES: OrderType[] = ['market', 'limit', 'stop'];
@@ -193,13 +194,7 @@ export default function TradeScreen() {
       });
     } else {
       setBalance(balance + order.totalAmount);
-      const existing = holdings.find((h) => h.coinId === order.coinId);
-      if (existing) {
-        const remaining = existing.quantity - order.quantity;
-        if (remaining <= 0.00000001) {
-          usePortfolioStore.getState().removeHolding(order.coinId);
-        }
-      }
+      usePortfolioStore.getState().reduceHolding(order.coinId, order.quantity);
     }
 
     setLastTrade({
@@ -224,6 +219,19 @@ export default function TradeScreen() {
     getAnalytics().track({
       name: 'trade_executed',
       properties: { side: activeSide, symbol: selectedCoin.symbol, amount: order.totalAmount },
+    });
+
+    syncQueue.enqueue({
+      type: 'trade',
+      payload: {
+        orderId: order.id,
+        transactionId: transaction.id,
+        side: activeSide,
+        coinId: selectedCoin.id,
+        quantity: order.quantity,
+        price: order.price,
+        totalAmount: order.totalAmount,
+      },
     });
 
     setIsExecuting(false);

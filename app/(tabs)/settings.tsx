@@ -17,7 +17,10 @@ import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography, borderRadius } from '@/src/ui/theme';
 import { ScreenErrorBoundary } from '@/src/ui/components/common';
 import { useSettingsStore, useAuthStore, useNotificationStore } from '@/src/store';
-import { APP_VERSION } from '@/src/lib/constants';
+import { APP_VERSION, AUTH, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES } from '@/src/lib/constants';
+import { savePin, removePin } from '@/src/core/auth/pin';
+import { PinPad } from '@/src/ui/components/auth';
+import { Modal } from 'react-native';
 import {
   checkBiometricCapability,
   enrollBiometric,
@@ -27,19 +30,25 @@ import {
 import type { BiometricType } from '@/src/types';
 
 type ThemeMode = 'light' | 'dark' | 'system';
+type CurrencyCode = 'usd' | 'eur' | 'gbp' | 'jpy' | 'btc' | 'eth';
+type LanguageCode = 'en' | 'ja' | 'zh';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
 
   const {
     theme,
+    currency,
+    language,
     notificationsEnabled,
     priceAlerts,
     hapticFeedback,
     biometricTradeConfirmation,
     setTheme,
+    setCurrency,
+    setLanguage,
     setNotificationsEnabled,
     setPriceAlerts,
     setHapticFeedback,
@@ -54,6 +63,10 @@ export default function SettingsScreen() {
 
   const [biometricType, setBiometricType] = useState<BiometricType>('none');
   const [biometricHardwareAvailable, setBiometricHardwareAvailable] = useState(false);
+  const [showPinSetup, setShowPinSetup] = useState(false);
+  const [pinStep, setPinStep] = useState<'create' | 'confirm'>('create');
+  const [firstPin, setFirstPin] = useState('');
+  const [pinError, setPinError] = useState('');
 
   useEffect(() => {
     checkBiometricCapability().then((cap) => {
@@ -85,6 +98,36 @@ export default function SettingsScreen() {
   const handleLogout = () => {
     logout();
     router.replace('/(auth)');
+  };
+
+  const handlePinToggle = async () => {
+    if (securitySettings.pinEnabled) {
+      await removePin();
+      updateSecuritySettings({ pinEnabled: false });
+    } else {
+      setPinStep('create');
+      setFirstPin('');
+      setPinError('');
+      setShowPinSetup(true);
+    }
+  };
+
+  const handlePinComplete = async (pin: string) => {
+    if (pinStep === 'create') {
+      setFirstPin(pin);
+      setPinStep('confirm');
+      setPinError('');
+    } else {
+      if (pin === firstPin) {
+        await savePin(pin);
+        updateSecuritySettings({ pinEnabled: true });
+        setShowPinSetup(false);
+      } else {
+        setPinError(t('common.error'));
+        setPinStep('create');
+        setFirstPin('');
+      }
+    }
   };
 
   const SettingRow = ({
@@ -167,6 +210,50 @@ export default function SettingsScreen() {
             value={biometricTradeConfirmation}
             onToggle={setBiometricTradeConfirmation}
           />
+          <SettingRow
+            label={t('settings.pin')}
+            value={securitySettings.pinEnabled ? 'Enabled' : 'Disabled'}
+            onPress={handlePinToggle}
+          />
+          <SettingToggle
+            label={t('settings.screenshotPrevention')}
+            value={securitySettings.screenshotPrevention}
+            onToggle={(val) => updateSecuritySettings({ screenshotPrevention: val })}
+          />
+          <SettingRow
+            label={t('settings.autoLock')}
+            value={`${securitySettings.autoLockTimeout} min`}
+          />
+          <View style={styles.themeRow}>
+            {AUTH.AUTO_LOCK_OPTIONS.map((minutes) => (
+              <TouchableOpacity
+                key={minutes}
+                onPress={() => updateSecuritySettings({ autoLockTimeout: minutes })}
+                style={[
+                  styles.themeButton,
+                  {
+                    backgroundColor:
+                      securitySettings.autoLockTimeout === minutes ? colors.primary : colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: securitySettings.autoLockTimeout === minutes }}
+              >
+                <Text
+                  style={[
+                    styles.themeButtonText,
+                    {
+                      color:
+                        securitySettings.autoLockTimeout === minutes ? colors.textInverse : colors.text,
+                    },
+                  ]}
+                >
+                  {minutes}m
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -204,6 +291,79 @@ export default function SettingsScreen() {
                   ]}
                 >
                   {t(`settings.theme${mode.charAt(0).toUpperCase() + mode.slice(1)}` as never)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <SettingRow
+            label={t('settings.currency')}
+            value={SUPPORTED_CURRENCIES.find((c) => c.code === currency)?.name ?? currency.toUpperCase()}
+          />
+          <View style={styles.themeRow}>
+            {SUPPORTED_CURRENCIES.slice(0, 4).map((c) => (
+              <TouchableOpacity
+                key={c.code}
+                onPress={() => setCurrency(c.code as CurrencyCode)}
+                style={[
+                  styles.themeButton,
+                  {
+                    backgroundColor:
+                      currency === c.code ? colors.primary : colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: currency === c.code }}
+              >
+                <Text
+                  style={[
+                    styles.themeButtonText,
+                    {
+                      color:
+                        currency === c.code ? colors.textInverse : colors.text,
+                    },
+                  ]}
+                >
+                  {c.symbol} {c.code.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <SettingRow
+            label={t('settings.language')}
+            value={SUPPORTED_LANGUAGES.find((l) => l.code === language)?.nativeName ?? language}
+          />
+          <View style={styles.themeRow}>
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                onPress={() => {
+                  setLanguage(lang.code as LanguageCode);
+                  i18n.changeLanguage(lang.code);
+                }}
+                style={[
+                  styles.themeButton,
+                  {
+                    backgroundColor:
+                      language === lang.code ? colors.primary : colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: language === lang.code }}
+              >
+                <Text
+                  style={[
+                    styles.themeButtonText,
+                    {
+                      color:
+                        language === lang.code ? colors.textInverse : colors.text,
+                    },
+                  ]}
+                >
+                  {lang.nativeName}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -278,6 +438,21 @@ export default function SettingsScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal visible={showPinSetup} animationType="slide" presentationStyle="formSheet">
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={styles.pinHeader}>
+            <TouchableOpacity onPress={() => setShowPinSetup(false)}>
+              <Text style={[styles.settingLabel, { color: colors.primary }]}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+          <PinPad
+            title={pinStep === 'create' ? t('auth.createPin') : t('common.confirm')}
+            error={pinError}
+            onComplete={handlePinComplete}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
     </ScreenErrorBoundary>
   );
@@ -342,5 +517,11 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     ...typography.button,
+  },
+  pinHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
 });

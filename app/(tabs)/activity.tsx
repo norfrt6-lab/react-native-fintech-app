@@ -6,8 +6,11 @@ import {
   SafeAreaView,
   SectionList,
   TouchableOpacity,
+  Alert,
+  Share,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { useTheme } from '@/src/ui/theme/ThemeContext';
 import { spacing, typography } from '@/src/ui/theme';
@@ -41,6 +44,22 @@ export default function ActivityScreen() {
       data,
     }));
   }, [transactions]);
+
+  const handleExport = async () => {
+    if (transactions.length === 0) return;
+    try {
+      const header = 'Date,Type,Coin,Symbol,Quantity,Price,Total,Fee,Status\n';
+      const rows = transactions.map((txn) =>
+        `${txn.createdAt},${txn.type},${txn.name},${txn.symbol},${txn.quantity},${txn.price},${txn.totalAmount},${txn.fee},${txn.status}`
+      ).join('\n');
+      const csv = header + rows;
+      const fileUri = FileSystem.documentDirectory + `fintrack_transactions_${Date.now()}.csv`;
+      await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      await Share.share({ title: 'Export Transactions', url: fileUri, message: csv });
+    } catch {
+      Alert.alert('Export', 'Failed to export transactions');
+    }
+  };
 
   const getTypeColor = (type: Transaction['type']) => {
     switch (type) {
@@ -103,6 +122,7 @@ export default function ActivityScreen() {
         </Text>
         {transactions.length > 0 && (
           <TouchableOpacity
+            onPress={handleExport}
             accessibilityRole="button"
             accessibilityLabel="Export transaction history"
           >

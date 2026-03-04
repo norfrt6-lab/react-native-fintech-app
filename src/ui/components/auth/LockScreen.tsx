@@ -10,11 +10,17 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeContext';
 import { spacing, typography, borderRadius } from '../../theme';
 import { Button } from '../common';
+import { PinPad } from './PinPad';
 import {
   authenticateWithBiometric,
   checkBiometricCapability,
   getBiometricLabel,
+  verifyPin,
+  checkLockout,
+  recordFailedAttempt,
+  resetAttempts,
 } from '../../../core/auth';
+import { useAuthStore } from '../../../store/auth.store';
 import type { BiometricType } from '../../../types';
 
 interface LockScreenProps {
@@ -24,7 +30,10 @@ interface LockScreenProps {
 export function LockScreen({ onUnlock }: LockScreenProps) {
   const { colors } = useTheme();
   const [biometricType, setBiometricType] = useState<BiometricType>('none');
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [error, setError] = useState('');
+  const [showPinPad, setShowPinPad] = useState(false);
+  const pinEnabled = useAuthStore((s) => s.securitySettings.pinEnabled);
 
   const handleBiometricUnlock = useCallback(async () => {
     setError('');
@@ -42,11 +51,59 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
   useEffect(() => {
     checkBiometricCapability().then((cap) => {
       setBiometricType(cap.biometricType);
+      setBiometricAvailable(cap.isAvailable);
       if (cap.isAvailable) {
         handleBiometricUnlock();
+      } else if (pinEnabled) {
+        setShowPinPad(true);
       }
     });
-  }, [handleBiometricUnlock]);
+  }, [handleBiometricUnlock, pinEnabled]);
+
+  const handlePinComplete = async (pin: string) => {
+    const lockout = await checkLockout();
+    if (lockout.locked) {
+      const mins = Math.ceil(lockout.remainingMs / 60000);
+      setError(`Locked out. Try again in ${mins} min`);
+      return;
+    }
+
+    const valid = await verifyPin(pin);
+    if (valid) {
+      await resetAttempts();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onUnlock();
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const result = await recordFailedAttempt();
+      if (result.locked) {
+        setError('Too many attempts. Locked out for 5 minutes.');
+      } else {
+        setError(`Wrong PIN. ${result.attemptsLeft} attempts left`);
+      }
+    }
+  };
+
+  if (showPinPad) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <PinPad
+          title="Enter PIN"
+          error={error}
+          onComplete={handlePinComplete}
+        />
+        {biometricAvailable && (
+          <Button
+            title={`Use ${getBiometricLabel(biometricType)}`}
+            onPress={() => { setShowPinPad(false); handleBiometricUnlock(); }}
+            variant="outline"
+            size="md"
+            style={styles.switchButton}
+          />
+        )}
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -76,6 +133,16 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
           fullWidth
           style={styles.unlockButton}
         />
+
+        {pinEnabled && (
+          <Button
+            title="Use PIN"
+            onPress={() => setShowPinPad(true)}
+            variant="outline"
+            size="md"
+            style={styles.switchButton}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -116,5 +183,8 @@ const styles = StyleSheet.create({
   },
   unlockButton: {
     marginTop: spacing.lg,
+  },
+  switchButton: {
+    marginTop: spacing.md,
   },
 });
