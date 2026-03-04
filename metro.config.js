@@ -2,7 +2,7 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// Packages that use native APIs or import.meta and break on web
+// Packages that use native APIs and break on web
 const nativeOnlyPackages = [
   'expo-screen-capture',
   'expo-haptics',
