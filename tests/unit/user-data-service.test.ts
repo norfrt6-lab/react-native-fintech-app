@@ -32,6 +32,13 @@ jest.mock('../../src/lib/logger', () => ({
   },
 }));
 
+const mockCaptureException = jest.fn();
+jest.mock('../../src/lib/crash-reporter', () => ({
+  getCrashReporter: () => ({
+    captureException: mockCaptureException,
+  }),
+}));
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
@@ -136,5 +143,33 @@ describe('fetchPortfolio', () => {
     const result = await fetchPortfolio('u1');
     expect(result).toEqual({ holdings: [], balance: 10000 });
     expect(mockDoc).toHaveBeenCalledWith('mock-db', 'users', 'u1', 'data', 'portfolio');
+  });
+});
+
+describe('error reporting to crash reporter', () => {
+  it('reports sync errors to crash reporter', async () => {
+    const error = new Error('Network error');
+    mockSetDoc.mockRejectedValue(error);
+
+    await syncUserData('user123', 'portfolio', { holdings: [] });
+
+    expect(mockCaptureException).toHaveBeenCalledWith(error, { uid: 'user123', key: 'portfolio' });
+  });
+
+  it('reports fetch errors to crash reporter', async () => {
+    const error = new Error('Permission denied');
+    mockGetDoc.mockRejectedValue(error);
+
+    await fetchUserData('user123', 'settings');
+
+    expect(mockCaptureException).toHaveBeenCalledWith(error, { uid: 'user123', key: 'settings' });
+  });
+
+  it('does not report to crash reporter on success', async () => {
+    mockSetDoc.mockResolvedValue(undefined);
+
+    await syncUserData('user123', 'portfolio', { holdings: [] });
+
+    expect(mockCaptureException).not.toHaveBeenCalled();
   });
 });

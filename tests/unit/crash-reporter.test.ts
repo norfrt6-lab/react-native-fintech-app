@@ -12,6 +12,9 @@ jest.mock('@sentry/react-native', () => ({
     setStatus: jest.fn(),
   }),
   setTag: jest.fn(),
+  metrics: {
+    distribution: jest.fn(),
+  },
 }));
 
 jest.mock('../../src/lib/config', () => ({
@@ -172,7 +175,7 @@ describe('CrashReporter', () => {
       expect(txn.setStatus).toBeDefined();
     });
 
-    it('SentryCrashReporter recordMetric adds a breadcrumb', () => {
+    it('SentryCrashReporter recordMetric calls Sentry.metrics.distribution', () => {
       (getConfig as jest.Mock).mockReturnValue({
         env: 'production',
         enableCrashReporting: true,
@@ -181,11 +184,10 @@ describe('CrashReporter', () => {
 
       initCrashReporter();
       getCrashReporter().recordMetric('api_request_duration', 250, 'ms');
-      expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
-        expect.objectContaining({
-          category: 'metric',
-          data: { name: 'api_request_duration', value: 250, unit: 'ms' },
-        }),
+      expect(Sentry.metrics.distribution).toHaveBeenCalledWith(
+        'api_request_duration',
+        250,
+        { unit: 'ms' },
       );
     });
   });

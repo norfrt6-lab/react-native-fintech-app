@@ -7,6 +7,29 @@ import { logger } from './logger';
 const TAG = 'Storage';
 const ENCRYPTION_KEY_ALIAS = 'fintrack_mmkv_encryption_key';
 
+const FALLBACK_KEY_STORAGE_ID = 'fintrack-fallback-keystore';
+const FALLBACK_KEY_NAME = 'device_fallback_key';
+
+/**
+ * Device-specific fallback key: stored in a separate non-encrypted MMKV instance.
+ * Each device gets a unique random key on first fallback, avoiding a universal static key.
+ */
+function getDeviceFallbackKey(): string {
+  try {
+    const fallbackStore = createMMKV({ id: FALLBACK_KEY_STORAGE_ID });
+    const existing = fallbackStore.getString(FALLBACK_KEY_NAME);
+    if (existing) return existing;
+
+    const key = 'fb-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+    fallbackStore.set(FALLBACK_KEY_NAME, key);
+    logger.warn(TAG, 'Generated device-specific fallback encryption key');
+    return key;
+  } catch {
+    logger.error(TAG, 'Fallback MMKV also failed, using last-resort key');
+    return 'fintrack-fallback-' + ENCRYPTION_KEY_ALIAS;
+  }
+}
+
 let storage: MMKV;
 
 async function getOrCreateEncryptionKey(): Promise<string> {
@@ -26,9 +49,7 @@ async function getOrCreateEncryptionKey(): Promise<string> {
     return key;
   } catch (error) {
     logger.error(TAG, 'Failed to access SecureStore for encryption key', error);
-    // Fallback: use a deterministic but non-hardcoded key derived from app identity
-    // This is less secure but prevents data loss if SecureStore is unavailable
-    return 'fintrack-fallback-' + ENCRYPTION_KEY_ALIAS;
+    return getDeviceFallbackKey();
   }
 }
 

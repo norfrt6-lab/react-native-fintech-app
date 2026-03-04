@@ -57,6 +57,22 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Mock @sentry/react-native
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  setUser: jest.fn(),
+  addBreadcrumb: jest.fn(),
+  setTag: jest.fn(),
+  startInactiveSpan: jest.fn().mockReturnValue({
+    end: jest.fn(),
+    setStatus: jest.fn(),
+  }),
+  metrics: {
+    distribution: jest.fn(),
+  },
+}));
+
 // Mock @react-native-community/netinfo
 jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn().mockReturnValue(jest.fn()),

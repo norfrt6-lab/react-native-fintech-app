@@ -55,6 +55,36 @@ describe('Storage', () => {
     });
   });
 
+  describe('fallback encryption key', () => {
+    it('generates a device-specific fallback key when SecureStore fails', async () => {
+      const SecureStore = require('expo-secure-store');
+      (SecureStore.getItemAsync as jest.Mock).mockRejectedValueOnce(new Error('SecureStore unavailable'));
+
+      const { initializeStorage } = require('../../src/lib/storage');
+      await initializeStorage();
+
+      // The mock MMKV createMMKV is called; storage should still initialize
+      const mmkv = require('react-native-mmkv');
+      // createMMKV should be called twice: once for fallback keystore, once for main storage
+      expect(mmkv.createMMKV).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'fintrack-fallback-keystore' }),
+      );
+    });
+
+    it('reuses existing fallback key on subsequent SecureStore failures', async () => {
+      const SecureStore = require('expo-secure-store');
+      (SecureStore.getItemAsync as jest.Mock).mockRejectedValue(new Error('SecureStore unavailable'));
+
+      const mmkv = require('react-native-mmkv');
+      const mockFallbackStore = mmkv.createMMKV({ id: 'fintrack-fallback-keystore' });
+      mockFallbackStore.getString = jest.fn().mockReturnValue('existing-fallback-key');
+
+      const { initializeStorage } = require('../../src/lib/storage');
+      await initializeStorage();
+      // Should not throw and should use existing key
+    });
+  });
+
   describe('StorageKeys', () => {
     it('exports expected storage key constants', () => {
       const { StorageKeys } = require('../../src/lib/storage');

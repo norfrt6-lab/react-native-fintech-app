@@ -1,6 +1,4 @@
-import * as Sentry from '@sentry/react-native';
 import { logger } from './logger';
-import { getConfig } from './config';
 
 const TAG = 'CrashReporter';
 
@@ -33,7 +31,7 @@ class ConsoleCrashReporter implements CrashReporter {
   private readonly maxBreadcrumbs = 50;
 
   init(): void {
-    logger.info(TAG, 'Console crash reporter initialized (dev mode)');
+    logger.info(TAG, 'Console crash reporter initialized (web mode)');
   }
 
   captureException(error: Error, context?: Record<string, unknown>): void {
@@ -79,85 +77,16 @@ class ConsoleCrashReporter implements CrashReporter {
   }
 }
 
-class SentryCrashReporter implements CrashReporter {
-  private dsn: string;
-
-  constructor(dsn: string) {
-    this.dsn = dsn;
-  }
-
-  init(): void {
-    if (!this.dsn) {
-      logger.warn(TAG, 'Sentry DSN not configured, falling back to console reporter');
-      return;
-    }
-
-    Sentry.init({
-      dsn: this.dsn,
-      tracesSampleRate: 0.2,
-      enableAutoSessionTracking: true,
-      enableAutoPerformanceTracing: true,
-    });
-
-    logger.info(TAG, 'Sentry crash reporter initialized');
-  }
-
-  captureException(error: Error, context?: Record<string, unknown>): void {
-    Sentry.captureException(error, { extra: context });
-  }
-
-  setUser(user: { id: string; email?: string } | null): void {
-    Sentry.setUser(user);
-  }
-
-  addBreadcrumb(breadcrumb: Omit<Breadcrumb, 'timestamp'>): void {
-    Sentry.addBreadcrumb({
-      category: breadcrumb.category,
-      message: breadcrumb.message,
-      level: breadcrumb.level,
-      data: breadcrumb.data,
-    });
-  }
-
-  startTransaction(name: string, op: string): PerformanceTransaction {
-    const span = Sentry.startInactiveSpan({ name, op });
-    return {
-      finish: () => span?.end(),
-      setStatus: (status) => {
-        if (span) {
-          span.setStatus(status === 'ok' ? { code: 1, message: 'ok' } : { code: 2, message: status });
-        }
-      },
-    };
-  }
-
-  setTag(key: string, value: string): void {
-    Sentry.setTag(key, value);
-  }
-
-  recordMetric(name: string, value: number, unit = 'ms'): void {
-    Sentry.metrics.distribution(name, value, { unit });
-  }
-}
-
-function createCrashReporter(): CrashReporter {
-  const config = getConfig();
-  if (config.enableCrashReporting && config.sentryDsn) {
-    return new SentryCrashReporter(config.sentryDsn);
-  }
-  return new ConsoleCrashReporter();
-}
-
-let instance: CrashReporter = new ConsoleCrashReporter();
+const instance: CrashReporter = new ConsoleCrashReporter();
 
 export function getCrashReporter(): CrashReporter {
   return instance;
 }
 
 export function initCrashReporter(): void {
-  instance = createCrashReporter();
+  // No-op on web — always uses console reporter
 }
 
-export function setCrashReporter(reporter: CrashReporter): void {
-  instance = reporter;
+export function setCrashReporter(_reporter: CrashReporter): void {
+  // No-op on web
 }

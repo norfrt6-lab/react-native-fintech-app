@@ -21,6 +21,7 @@ import { checkDeviceIntegrity, isDebuggerAttached } from '@/src/lib/security';
 import * as ScreenCapture from 'expo-screen-capture';
 import * as Linking from 'expo-linking';
 import { parseDeepLink, isValidDeepLink } from '@/src/lib/deep-linking';
+import { fetchTrades, fetchWatchlist, fetchSettings } from '@/src/core/data';
 import '@/src/lib/i18n';
 
 export { ErrorBoundary } from 'expo-router';
@@ -108,13 +109,15 @@ function RootLayoutNav() {
   }, [pathname]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && securitySettings.screenshotPrevention) {
       ScreenCapture.preventScreenCaptureAsync();
       return () => {
         ScreenCapture.allowScreenCaptureAsync();
       };
+    } else if (isAuthenticated) {
+      ScreenCapture.allowScreenCaptureAsync();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, securitySettings.screenshotPrevention]);
 
   useEffect(() => {
     const cleanup = initializeConnectivity();
@@ -137,6 +140,9 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isAuthenticated && user?.uid) {
       loadPortfolioFromRemote(user.uid);
+      fetchTrades(user.uid);
+      fetchWatchlist(user.uid);
+      fetchSettings(user.uid);
     }
   }, [isAuthenticated, user?.uid, loadPortfolioFromRemote]);
 
@@ -182,6 +188,7 @@ function RootLayoutNav() {
       ) {
         updateLastActive();
         getAnalytics().track({ name: 'app_backgrounded' });
+        getAnalytics().endSession();
       }
 
       if (nextAppState === 'active' && appStateRef.current !== 'active') {
@@ -192,7 +199,7 @@ function RootLayoutNav() {
         nextAppState === 'active' &&
         appStateRef.current !== 'active' &&
         isAuthenticated &&
-        securitySettings.biometricEnabled
+        (securitySettings.biometricEnabled || securitySettings.pinEnabled)
       ) {
         const timeout = securitySettings.autoLockTimeout * 60 * 1000;
         if (lastActiveAt && Date.now() - lastActiveAt > timeout) {

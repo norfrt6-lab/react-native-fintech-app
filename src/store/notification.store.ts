@@ -96,10 +96,31 @@ export const useNotificationStore = create<NotificationStore>()(
 
       checkAlerts: async (marketData) => {
         const { alerts, hasPermission } = get();
-        const activeAlerts = alerts.filter((a) => a.status === 'active');
+
+        // Expire alerts older than 30 days
+        const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+        const now = Date.now();
+        const expiredIds: string[] = [];
+        for (const alert of alerts) {
+          if (alert.status === 'active' && now - new Date(alert.createdAt).getTime() > thirtyDaysMs) {
+            expiredIds.push(alert.id);
+          }
+        }
+        if (expiredIds.length > 0) {
+          set((state) => {
+            for (const alert of state.alerts) {
+              if (expiredIds.includes(alert.id)) {
+                alert.status = 'expired';
+              }
+            }
+          });
+          logger.info(TAG, `Expired ${expiredIds.length} stale alert(s) older than 30 days`);
+        }
+
+        const activeAlerts = get().alerts.filter((a) => a.status === 'active');
         if (activeAlerts.length === 0 || !hasPermission) return;
 
-        const { triggeredIds, updatedAlerts } = evaluateAlerts(alerts, marketData);
+        const { triggeredIds, updatedAlerts } = evaluateAlerts(get().alerts, marketData);
 
         if (triggeredIds.length > 0) {
           set((state) => {

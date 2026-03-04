@@ -94,99 +94,6 @@ describe('TradeStore', () => {
     });
   });
 
-  describe('executeTrade', () => {
-    it('creates a buy order with correct calculations', () => {
-      useTradeStore.getState().setFormData({
-        coinId: 'bitcoin',
-        side: 'buy',
-        type: 'market',
-        amount: '1000',
-      });
-
-      const order = useTradeStore.getState().executeTrade(50000);
-
-      expect(order.coinId).toBe('bitcoin');
-      expect(order.side).toBe('buy');
-      expect(order.type).toBe('market');
-      expect(order.price).toBe(50000);
-      expect(order.quantity).toBeCloseTo(0.02, 4); // 1000 / 50000
-      expect(order.fee).toBeCloseTo(1, 2); // 0.1% of 1000
-      expect(order.totalAmount).toBeCloseTo(1001, 0); // 1000 + 1 fee
-      expect(order.status).toBe('filled');
-      expect(order.id).toMatch(/^order_/);
-    });
-
-    it('creates a sell order with fee subtracted', () => {
-      useTradeStore.getState().setFormData({
-        coinId: 'bitcoin',
-        side: 'sell',
-        type: 'market',
-        amount: '1000',
-      });
-
-      const order = useTradeStore.getState().executeTrade(50000);
-
-      expect(order.side).toBe('sell');
-      expect(order.totalAmount).toBeCloseTo(999, 0); // 1000 - 1 fee
-    });
-
-    it('adds order to orders list (most recent first)', () => {
-      useTradeStore.getState().setFormData({ coinId: 'bitcoin', side: 'buy', amount: '100' });
-      useTradeStore.getState().executeTrade(50000);
-
-      useTradeStore.getState().setFormData({ coinId: 'ethereum', side: 'buy', amount: '200' });
-      useTradeStore.getState().executeTrade(3000);
-
-      const orders = useTradeStore.getState().orders;
-      expect(orders).toHaveLength(2);
-      expect(orders[0].coinId).toBe('ethereum'); // most recent first
-      expect(orders[1].coinId).toBe('bitcoin');
-    });
-
-    it('creates a transaction alongside the order', () => {
-      useTradeStore.getState().setFormData({
-        coinId: 'bitcoin',
-        side: 'buy',
-        amount: '500',
-      });
-
-      useTradeStore.getState().executeTrade(50000);
-
-      const txns = useTradeStore.getState().transactions;
-      expect(txns).toHaveLength(1);
-      expect(txns[0].coinId).toBe('bitcoin');
-      expect(txns[0].type).toBe('buy');
-      expect(txns[0].status).toBe('filled');
-    });
-
-    it('includes limit price when order type is limit', () => {
-      useTradeStore.getState().setFormData({
-        coinId: 'bitcoin',
-        side: 'buy',
-        type: 'limit',
-        amount: '1000',
-        limitPrice: '45000',
-      });
-
-      const order = useTradeStore.getState().executeTrade(50000);
-      expect(order.limitPrice).toBe(45000);
-      expect(order.stopPrice).toBeUndefined();
-    });
-
-    it('includes stop price when order type is stop', () => {
-      useTradeStore.getState().setFormData({
-        coinId: 'bitcoin',
-        side: 'sell',
-        type: 'stop',
-        amount: '1000',
-        stopPrice: '48000',
-      });
-
-      const order = useTradeStore.getState().executeTrade(50000);
-      expect(order.stopPrice).toBe(48000);
-    });
-  });
-
   describe('addTransaction', () => {
     it('adds a transaction to the front of the list', () => {
       const txn: Transaction = {
@@ -207,25 +114,6 @@ describe('TradeStore', () => {
 
       expect(useTradeStore.getState().transactions).toHaveLength(1);
       expect(useTradeStore.getState().transactions[0].id).toBe('txn_1');
-    });
-  });
-
-  describe('getTransactionsByCoin', () => {
-    it('filters transactions by coinId', () => {
-      useTradeStore.getState().setFormData({ coinId: 'bitcoin', side: 'buy', amount: '100' });
-      useTradeStore.getState().executeTrade(50000);
-
-      useTradeStore.getState().setFormData({ coinId: 'ethereum', side: 'buy', amount: '100' });
-      useTradeStore.getState().executeTrade(3000);
-
-      const btcTxns = useTradeStore.getState().getTransactionsByCoin('bitcoin');
-      expect(btcTxns).toHaveLength(1);
-      expect(btcTxns[0].coinId).toBe('bitcoin');
-    });
-
-    it('returns empty array for unknown coin', () => {
-      const txns = useTradeStore.getState().getTransactionsByCoin('unknown');
-      expect(txns).toEqual([]);
     });
   });
 

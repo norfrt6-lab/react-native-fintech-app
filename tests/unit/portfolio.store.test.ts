@@ -203,6 +203,50 @@ describe('PortfolioStore', () => {
     });
   });
 
+  describe('reduceHolding', () => {
+    it('reduces quantity on partial sell', () => {
+      usePortfolioStore.getState().addHolding(makeHoldingInput({ quantity: 1 }));
+
+      usePortfolioStore.getState().reduceHolding('bitcoin', 0.3);
+
+      const holding = usePortfolioStore.getState().holdings[0];
+      expect(holding.quantity).toBeCloseTo(0.7, 4);
+    });
+
+    it('removes holding when quantity reaches zero', () => {
+      usePortfolioStore.getState().addHolding(makeHoldingInput({ quantity: 0.5 }));
+
+      usePortfolioStore.getState().reduceHolding('bitcoin', 0.5);
+
+      expect(usePortfolioStore.getState().holdings).toHaveLength(0);
+    });
+
+    it('recalculates allocation after partial sell', () => {
+      usePortfolioStore.getState().addHolding(makeHoldingInput({
+        coinId: 'bitcoin', quantity: 1, currentPrice: 50000,
+      }));
+      usePortfolioStore.getState().addHolding(makeHoldingInput({
+        id: 'eth-1', coinId: 'ethereum', symbol: 'ETH', name: 'Ethereum',
+        quantity: 10, currentPrice: 3000, averageBuyPrice: 2500,
+      }));
+
+      usePortfolioStore.getState().reduceHolding('bitcoin', 0.5);
+
+      const holdings = usePortfolioStore.getState().holdings;
+      expect(holdings).toHaveLength(2);
+      // Total value: 25000 (BTC) + 30000 (ETH) = 55000
+      const btc = holdings.find((h) => h.coinId === 'bitcoin')!;
+      const eth = holdings.find((h) => h.coinId === 'ethereum')!;
+      expect(btc.allocation + eth.allocation).toBeCloseTo(100, 0);
+    });
+
+    it('does nothing for unknown coinId', () => {
+      usePortfolioStore.getState().addHolding(makeHoldingInput({ quantity: 1 }));
+      usePortfolioStore.getState().reduceHolding('nonexistent', 0.5);
+      expect(usePortfolioStore.getState().holdings[0].quantity).toBe(1);
+    });
+  });
+
   describe('updatePortfolioSummary', () => {
     it('calculates summary from holdings', () => {
       usePortfolioStore.getState().addHolding(makeHoldingInput({

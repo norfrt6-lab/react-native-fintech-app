@@ -49,12 +49,12 @@ export const SUPPORTED_CURRENCIES = [
   { code: 'eur', symbol: '€', name: 'Euro' },
   { code: 'gbp', symbol: '£', name: 'British Pound' },
   { code: 'jpy', symbol: '¥', name: 'Japanese Yen' },
-{ code: 'btc', symbol: '₿', name: 'Bitcoin' },
+  { code: 'btc', symbol: '₿', name: 'Bitcoin' },
   { code: 'eth', symbol: 'Ξ', name: 'Ethereum' },
 ] as const;
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English', nativeName: 'English' },
-{ code: 'ja', name: 'Japanese', nativeName: '日本語' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
   { code: 'zh', name: 'Chinese', nativeName: '中文' },
 ] as const;
