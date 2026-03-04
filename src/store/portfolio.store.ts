@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { zustandStorage } from '../lib/storage';
+import { fetchPortfolio } from '../core/data';
+import { logger } from '../lib/logger';
 import type {
   Holding,
   PortfolioSummary,
@@ -20,12 +22,14 @@ interface PortfolioStore {
 
   addHolding: (holding: Omit<Holding, 'value' | 'costBasis' | 'profitLoss' | 'profitLossPercentage' | 'allocation'>) => void;
   updateHoldingPrice: (coinId: string, currentPrice: number, priceChange24h: number) => void;
+  reduceHolding: (coinId: string, soldQuantity: number) => void;
   removeHolding: (coinId: string) => void;
   updatePortfolioSummary: () => void;
   setBalance: (balance: number) => void;
   setHideBalance: (hide: boolean) => void;
   setTimeRange: (range: PortfolioTimeRange) => void;
   addHistoryPoint: (point: PortfolioHistoryPoint) => void;
+  loadFromRemote: (uid: string) => Promise<void>;
 }
 
 function calculateHoldingMetrics(holding: Holding): Holding {
@@ -88,6 +92,24 @@ export const usePortfolioStore = create<PortfolioStore>()(
             const updated = calculateHoldingMetrics(holding);
             Object.assign(holding, updated);
 
+            const totalValue = state.holdings.reduce((sum, h) => sum + h.value, 0);
+            state.holdings.forEach((h) => {
+              h.allocation = totalValue > 0 ? (h.value / totalValue) * 100 : 0;
+            });
+          }
+        }),
+
+      reduceHolding: (coinId, soldQuantity) =>
+        set((state) => {
+          const holding = state.holdings.find((h) => h.coinId === coinId);
+          if (holding) {
+            holding.quantity -= soldQuantity;
+            if (holding.quantity <= 0.00000001) {
+              state.holdings = state.holdings.filter((h) => h.coinId !== coinId);
+            } else {
+              const updated = calculateHoldingMetrics(holding);
+              Object.assign(holding, updated);
+            }
             const totalValue = state.holdings.reduce((sum, h) => sum + h.value, 0);
             state.holdings.forEach((h) => {
               h.allocation = totalValue > 0 ? (h.value / totalValue) * 100 : 0;
@@ -161,6 +183,24 @@ export const usePortfolioStore = create<PortfolioStore>()(
             state.history = state.history.slice(-365);
           }
         }),
+
+      loadFromRemote: async (uid) => {
+        try {
+          const data = await fetchPortfolio(uid);
+          if (data && Array.isArray(data.holdings) && data.holdings.length > 0) {
+            set((state) => {
+              state.holdings = data.holdings as Holding[];
+              state.balance = (data.balance as number) ?? state.balance;
+              if (Array.isArray(data.history)) {
+                state.history = data.history as PortfolioHistoryPoint[];
+              }
+            });
+            logger.info('PortfolioStore', 'Loaded portfolio from remote');
+          }
+        } catch (error) {
+          logger.error('PortfolioStore', 'Failed to load remote portfolio', error);
+        }
+      },
     })),
     {
       name: 'portfolio-store',

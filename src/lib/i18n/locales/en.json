@@ -72,7 +72,17 @@
     "tradeSuccess": "Trade Executed Successfully",
     "tradeFailed": "Trade Failed",
     "insufficientBalance": "Insufficient Balance",
-    "available": "Available"
+    "available": "Available",
+    "noConnection": "No Connection",
+    "noConnectionMessage": "Cannot execute trades while offline. Please check your internet connection.",
+    "stalePriceData": "Stale Price Data",
+    "stalePriceMessage": "Market data may be outdated. Refresh prices before trading to avoid unexpected execution prices.",
+    "tradeAnyway": "Trade Anyway",
+    "tradeError": "Trade Error",
+    "stopPrice": "Stop Price",
+    "youReceive": "You receive",
+    "youSell": "You sell",
+    "max": "MAX"
   },
   "activity": {
     "title": "Activity",
@@ -100,6 +110,18 @@
     "haptic": "Haptic Feedback",
     "about": "About",
     "version": "Version",
-    "hideBalance": "Hide Balance"
+    "hideBalance": "Hide Balance",
+    "biometricLogin": "{{type}} Login",
+    "biometricTradeConfirmation": "Biometric Trade Confirmation",
+    "activePriceAlerts": "Active Price Alerts",
+    "clearTriggeredAlerts": "Clear Triggered Alerts",
+    "clearNotificationHistory": "Clear Notification History",
+    "cleared": "Cleared",
+    "triggeredAlertsCleared": "Triggered alerts have been removed.",
+    "notificationHistoryCleared": "Notification history has been cleared.",
+    "enrollmentFailed": "Enrollment Failed",
+    "enrollmentFailedMessage": "Could not enable biometric authentication.",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
   }
 }

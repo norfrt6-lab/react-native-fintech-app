@@ -26,6 +26,7 @@ interface ButtonProps {
   rightIcon?: React.ReactNode;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  testID?: string;
 }
 
 export function Button({
@@ -40,6 +41,7 @@ export function Button({
   rightIcon,
   style,
   textStyle,
+  testID,
 }: ButtonProps) {
   const { colors } = useTheme();
 
@@ -84,6 +86,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
+      testID={testID}
     >
       {loading ? (
         <ActivityIndicator color={textColor} size="small" />

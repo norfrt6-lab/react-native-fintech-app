@@ -3,6 +3,7 @@
     "name": "FinTrack",
     "slug": "react-native-fintech-app",
     "version": "1.0.0",
+    "description": "Track your crypto portfolio, trade coins, and set price alerts with real-time market data.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "fintrack",
@@ -15,6 +16,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.norfrt6.fintrack",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "associatedDomains": [
+        "applinks:fintrack.app",
+        "applinks:www.fintrack.app"
+      ],
       "infoPlist": {
         "NSFaceIDUsageDescription": "Use Face ID to securely access your portfolio",
         "NSCameraUsageDescription": "Scan QR codes for wallet addresses"
@@ -33,6 +41,30 @@
         "USE_FINGERPRINT",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "fintrack.app",
+              "pathPrefix": "/coin"
+            },
+            {
+              "scheme": "https",
+              "host": "fintrack.app",
+              "pathPrefix": "/trade"
+            },
+            {
+              "scheme": "https",
+              "host": "fintrack.app",
+              "pathPrefix": "/markets"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {
@@ -51,6 +83,13 @@
         }
       ]
     ],
+    "updates": {
+      "url": "https://u.expo.dev/fintrack-portfolio-app",
+      "fallbackToCacheTimeout": 5000
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "experiments": {
       "typedRoutes": true
     },

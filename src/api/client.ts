@@ -3,8 +3,14 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
+import * as SecureStore from 'expo-secure-store';
 import { API } from '../lib/constants';
+import { StorageKeys } from '../lib/storage';
 import { logger } from '../lib/logger';
+import { recordMetric } from '../lib/metrics';
+import { getCrashReporter } from '../lib/crash-reporter';
+import { apiRateLimiter } from './rate-limiter';
+import { attachSSLValidation } from '../lib/ssl-pinning';
 
 const TAG = 'ApiClient';
 
@@ -19,10 +25,25 @@ function createApiClient(): AxiosInstance {
   });
 
   client.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
+    async (config: InternalAxiosRequestConfig) => {
+      await apiRateLimiter.acquire();
+
+      (config as InternalAxiosRequestConfig & { _requestStartTime?: number })._requestStartTime =
+        Date.now();
+
       logger.debug(TAG, `${config.method?.toUpperCase()} ${config.url}`, {
         params: config.params,
       });
+
+      try {
+        const token = await SecureStore.getItemAsync(StorageKeys.AUTH_TOKEN);
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch {
+        logger.debug(TAG, 'Could not read auth token from SecureStore');
+      }
+
       return config;
     },
     (error: AxiosError) => {
@@ -33,6 +54,12 @@ function createApiClient(): AxiosInstance {
 
   client.interceptors.response.use(
     (response) => {
+      const startTime =
+        (response.config as InternalAxiosRequestConfig & { _requestStartTime?: number })
+          ._requestStartTime;
+      if (startTime) {
+        recordMetric('api_request_duration', Date.now() - startTime);
+      }
       logger.debug(TAG, `Response ${response.status} ${response.config.url}`);
       return response;
     },
@@ -58,11 +85,38 @@ function createApiClient(): AxiosInstance {
         return client(config);
       }
 
+      if (error.response?.status === 401) {
+        logger.warn(TAG, 'Unauthorized - token may be expired');
+        try {
+          await SecureStore.deleteItemAsync(StorageKeys.AUTH_TOKEN);
+        } catch (cleanupError) {
+          logger.warn(TAG, 'Failed to clear auth token on 401', cleanupError);
+        }
+      }
+
       if (error.response) {
-        logger.error(TAG, `API Error ${error.response.status}`, {
-          url: config.url,
-          data: error.response.data,
-        });
+        const status = error.response.status;
+        const context = { url: config.url, data: error.response.data };
+
+        if (status === 400) {
+          logger.warn(TAG, 'Bad request', context);
+        } else if (status === 403) {
+          logger.error(TAG, 'Forbidden', context);
+          getCrashReporter().captureException(
+            new Error(`API 403 Forbidden: ${config.url}`),
+            context,
+          );
+        } else if (status === 404) {
+          logger.warn(TAG, `Not found: ${config.url}`);
+        } else if (status >= 500) {
+          logger.error(TAG, `Server error ${status}`, context);
+          getCrashReporter().captureException(
+            new Error(`API ${status}: ${config.url}`),
+            context,
+          );
+        } else if (status !== 401 && status !== 429) {
+          logger.error(TAG, `API Error ${status}`, context);
+        }
       } else if (error.request) {
         logger.error(TAG, 'Network error - no response received', {
           url: config.url,
@@ -72,6 +126,8 @@ function createApiClient(): AxiosInstance {
       return Promise.reject(error);
     },
   );
+
+  attachSSLValidation(client);
 
   return client;
 }

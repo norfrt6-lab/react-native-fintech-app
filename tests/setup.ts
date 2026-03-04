@@ -18,13 +18,13 @@ jest.mock('react-native-mmkv', () => ({
 }));
 
 // Mock expo-crypto with incrementing values to ensure unique IDs
-let cryptoCallCount = 0;
+let mockCryptoCallCount = 0;
 jest.mock('expo-crypto', () => ({
   getRandomBytesAsync: jest.fn().mockImplementation((size: number) => {
-    cryptoCallCount++;
+    mockCryptoCallCount++;
     const bytes = new Uint8Array(size);
     for (let i = 0; i < size; i++) {
-      bytes[i] = (cryptoCallCount * 17 + i * 13) % 256;
+      bytes[i] = (mockCryptoCallCount * 17 + i * 13) % 256;
     }
     return Promise.resolve(bytes);
   }),
@@ -55,6 +55,22 @@ jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn().mockResolvedValue(null),
   setItemAsync: jest.fn().mockResolvedValue(undefined),
   deleteItemAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock @sentry/react-native
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  setUser: jest.fn(),
+  addBreadcrumb: jest.fn(),
+  setTag: jest.fn(),
+  startInactiveSpan: jest.fn().mockReturnValue({
+    end: jest.fn(),
+    setStatus: jest.fn(),
+  }),
+  metrics: {
+    distribution: jest.fn(),
+  },
 }));
 
 // Mock @react-native-community/netinfo

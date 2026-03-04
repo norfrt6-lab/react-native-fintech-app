@@ -1,5 +1,6 @@
 import { zustandStorage } from '../../lib/storage';
 import { logger } from '../../lib/logger';
+import { getCrashReporter } from '../../lib/crash-reporter';
 
 export interface SyncAction {
   id: string;
@@ -7,6 +8,7 @@ export interface SyncAction {
   payload: Record<string, unknown>;
   createdAt: number;
   retryCount: number;
+  version: number;
 }
 
 export interface DeadLetterAction extends SyncAction {
@@ -36,7 +38,8 @@ class SyncQueue {
         this.deadLetter = JSON.parse(deadStored as string);
       }
       this.loaded = true;
-    } catch {
+    } catch (error) {
+      logger.error('SyncQueue', 'Corrupt queue data, resetting', error);
       this.queue = [];
       this.deadLetter = [];
     }
@@ -51,13 +54,14 @@ class SyncQueue {
     }
   }
 
-  enqueue(action: Omit<SyncAction, 'id' | 'createdAt' | 'retryCount'>) {
+  enqueue(action: Omit<SyncAction, 'id' | 'createdAt' | 'retryCount' | 'version'> & { version?: number }) {
     this.ensureLoaded();
     const syncAction: SyncAction = {
       ...action,
       id: `sync_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       createdAt: Date.now(),
       retryCount: 0,
+      version: action.version ?? 1,
     };
 
     this.queue.push(syncAction);
@@ -119,6 +123,10 @@ class SyncQueue {
       lastError: error,
     });
     logger.warn('SyncQueue', `Action ${action.id} moved to dead letter queue: ${error}`);
+    getCrashReporter().captureException(
+      new Error(`Sync action ${action.type} permanently failed: ${error}`),
+      { actionId: action.id, actionType: action.type, retryCount: action.retryCount },
+    );
   }
 
   getPendingCount(): number {
@@ -154,6 +162,7 @@ class SyncQueue {
           payload: action.payload,
           createdAt: action.createdAt,
           retryCount: 0,
+          version: action.version,
         };
         const success = await processor(retryAction);
         if (success) {

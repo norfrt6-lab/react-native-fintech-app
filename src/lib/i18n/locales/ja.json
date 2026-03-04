@@ -72,7 +72,17 @@
     "tradeSuccess": "取引が正常に完了しました",
     "tradeFailed": "取引に失敗しました",
     "insufficientBalance": "残高不足",
-    "available": "利用可能"
+    "available": "利用可能",
+    "noConnection": "接続なし",
+    "noConnectionMessage": "オフライン中は取引を実行できません。インターネット接続を確認してください。",
+    "stalePriceData": "古い価格データ",
+    "stalePriceMessage": "市場データが古くなっている可能性があります。取引前に価格を更新してください。",
+    "tradeAnyway": "そのまま取引",
+    "tradeError": "取引エラー",
+    "stopPrice": "逆指値価格",
+    "youReceive": "受取",
+    "youSell": "売却",
+    "max": "最大"
   },
   "activity": {
     "title": "アクティビティ",
@@ -100,6 +110,16 @@
     "haptic": "触覚フィードバック",
     "about": "アプリについて",
     "version": "バージョン",
-    "hideBalance": "残高を非表示"
+    "hideBalance": "残高を非表示",
+    "biometricLogin": "{{type}}ログイン",
+    "biometricTradeConfirmation": "生体認証取引確認",
+    "activePriceAlerts": "有効な価格アラート",
+    "clearTriggeredAlerts": "トリガー済みアラートを削除",
+    "clearNotificationHistory": "通知履歴を削除",
+    "cleared": "削除完了",
+    "triggeredAlertsCleared": "トリガー済みアラートを削除しました。",
+    "notificationHistoryCleared": "通知履歴を削除しました。",
+    "enrollmentFailed": "登録失敗",
+    "enrollmentFailedMessage": "生体認証を有効にできませんでした。"
   }
 }

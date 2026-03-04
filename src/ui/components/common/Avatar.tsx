@@ -18,9 +18,10 @@ interface AvatarProps {
   fallback?: string;
   size?: AvatarSize;
   style?: ImageStyle;
+  accessibilityLabel?: string;
 }
 
-export function Avatar({ uri, fallback, size = 'md', style }: AvatarProps) {
+export function Avatar({ uri, fallback, size = 'md', style, accessibilityLabel }: AvatarProps) {
   const { colors } = useTheme();
   const dimension = SIZES[size];
 
@@ -38,6 +39,8 @@ export function Avatar({ uri, fallback, size = 'md', style }: AvatarProps) {
         ]}
         contentFit="cover"
         transition={200}
+        accessibilityRole="image"
+        accessibilityLabel={accessibilityLabel ?? (fallback ? `${fallback} avatar` : 'User avatar')}
       />
     );
   }
@@ -54,6 +57,8 @@ export function Avatar({ uri, fallback, size = 'md', style }: AvatarProps) {
         },
         style,
       ]}
+      accessibilityRole="image"
+      accessibilityLabel={accessibilityLabel ?? (fallback ? `${fallback} avatar` : 'User avatar')}
     >
       <Text
         style={[

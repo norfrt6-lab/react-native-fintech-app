@@ -128,7 +128,8 @@ export async function isBiometricEnrolled(): Promise<boolean> {
   try {
     const value = await SecureStore.getItemAsync(SECURE_KEYS.BIOMETRIC_ENROLLED);
     return value !== null;
-  } catch {
+  } catch (error) {
+    logger.debug('Biometric', 'Failed to read enrollment status from SecureStore', error);
     return false;
   }
 }
@@ -140,7 +141,8 @@ export async function saveSessionToken(token: string): Promise<void> {
 export async function getSessionToken(): Promise<string | null> {
   try {
     return await SecureStore.getItemAsync(SECURE_KEYS.SESSION_TOKEN);
-  } catch {
+  } catch (error) {
+    logger.debug('Biometric', 'Failed to read session token from SecureStore', error);
     return null;
   }
 }

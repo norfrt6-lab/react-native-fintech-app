@@ -1,0 +1,10 @@
+appId: com.norfrt6.fintrack
+---
+- launchApp
+- tapOn: "Markets"
+- assertVisible: "Markets"
+- scrollDown
+- tapOn:
+    index: 0
+- assertVisible: "Price"
+- back

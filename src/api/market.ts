@@ -10,9 +10,14 @@ import {
   searchResultSchema,
   trendingResultSchema,
 } from './schemas';
+import { useSettingsStore } from '../store/settings.store';
 import type { CoinMarketData, CoinDetail, PricePoint, CandlestickData, TimeRange } from '../types';
 
 const TAG = 'MarketApi';
+
+function getActiveCurrency(): string {
+  return useSettingsStore.getState().currency;
+}
 
 type MarketItem = z.infer<typeof coinGeckoMarketListSchema>[number];
 
@@ -62,7 +67,7 @@ export const marketApi = {
       '/coins/markets',
       {
         params: {
-          vs_currency: MARKET.DEFAULT_CURRENCY,
+          vs_currency: getActiveCurrency(),
           order: 'market_cap_desc',
           per_page: perPage,
           page,
@@ -134,7 +139,7 @@ export const marketApi = {
     const days = TIME_RANGE_DAYS[timeRange];
     const { data } = await apiClient.get(`/coins/${coinId}/market_chart`, {
       params: {
-        vs_currency: MARKET.DEFAULT_CURRENCY,
+        vs_currency: getActiveCurrency(),
         days,
       },
     });
@@ -157,7 +162,7 @@ export const marketApi = {
   ): Promise<CandlestickData[]> {
     const { data } = await apiClient.get(`/coins/${coinId}/ohlc`, {
       params: {
-        vs_currency: MARKET.DEFAULT_CURRENCY,
+        vs_currency: getActiveCurrency(),
         days,
       },
     });
@@ -201,7 +206,7 @@ export const marketApi = {
       '/coins/markets',
       {
         params: {
-          vs_currency: MARKET.DEFAULT_CURRENCY,
+          vs_currency: getActiveCurrency(),
           ids: coinIds,
           order: 'market_cap_desc',
           sparkline: false,
@@ -237,7 +242,7 @@ export const marketApi = {
       '/coins/markets',
       {
         params: {
-          vs_currency: MARKET.DEFAULT_CURRENCY,
+          vs_currency: getActiveCurrency(),
           ids: coinIds,
           sparkline: true,
           price_change_percentage: '7d',
