@@ -1,4 +1,4 @@
-import { getAnalytics, initAnalytics } from '../../src/lib/analytics';
+// All imports done inside jest.isolateModules blocks below
 
 const mockCrashReporter = {
   init: jest.fn(),

@@ -32,7 +32,7 @@ const defaultFormData: TradeFormData = {
 
 export const useTradeStore = create<TradeStore>()(
   persist(
-    immer((set, get) => ({
+    immer((set, _get) => ({
       orders: [],
       transactions: [],
       formData: { ...defaultFormData },
