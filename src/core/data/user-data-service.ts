@@ -1,6 +1,7 @@
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { getFirestoreDb } from '../../lib/firestore';
 import { logger } from '../../lib/logger';
+import { getCrashReporter } from '../../lib/crash-reporter';
 
 const TAG = 'UserDataService';
 
@@ -22,6 +23,10 @@ export async function syncUserData(
     return true;
   } catch (error) {
     logger.error(TAG, `Failed to sync ${key}`, error);
+    getCrashReporter().captureException(
+      error instanceof Error ? error : new Error(`Failed to sync ${key}`),
+      { uid, key },
+    );
     return false;
   }
 }
@@ -41,6 +46,10 @@ export async function fetchUserData(
     return null;
   } catch (error) {
     logger.error(TAG, `Failed to fetch ${key}`, error);
+    getCrashReporter().captureException(
+      error instanceof Error ? error : new Error(`Failed to fetch ${key}`),
+      { uid, key },
+    );
     return null;
   }
 }

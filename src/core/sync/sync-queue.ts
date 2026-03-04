@@ -1,5 +1,6 @@
 import { zustandStorage } from '../../lib/storage';
 import { logger } from '../../lib/logger';
+import { getCrashReporter } from '../../lib/crash-reporter';
 
 export interface SyncAction {
   id: string;
@@ -37,7 +38,8 @@ class SyncQueue {
         this.deadLetter = JSON.parse(deadStored as string);
       }
       this.loaded = true;
-    } catch {
+    } catch (error) {
+      logger.error('SyncQueue', 'Corrupt queue data, resetting', error);
       this.queue = [];
       this.deadLetter = [];
     }
@@ -121,6 +123,10 @@ class SyncQueue {
       lastError: error,
     });
     logger.warn('SyncQueue', `Action ${action.id} moved to dead letter queue: ${error}`);
+    getCrashReporter().captureException(
+      new Error(`Sync action ${action.type} permanently failed: ${error}`),
+      { actionId: action.id, actionType: action.type, retryCount: action.retryCount },
+    );
   }
 
   getPendingCount(): number {

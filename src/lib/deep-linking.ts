@@ -71,6 +71,7 @@ export function isValidDeepLink(url: string): boolean {
 
     return true;
   } catch {
+    logger.debug(TAG, 'Invalid deep link URL');
     return false;
   }
 }

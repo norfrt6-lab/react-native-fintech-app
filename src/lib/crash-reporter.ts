@@ -136,12 +136,7 @@ class SentryCrashReporter implements CrashReporter {
   }
 
   recordMetric(name: string, value: number, unit = 'ms'): void {
-    Sentry.addBreadcrumb({
-      category: 'metric',
-      message: `${name}: ${value}${unit}`,
-      level: 'info',
-      data: { name, value, unit },
-    });
+    Sentry.metrics.distribution(name, value, { unit });
   }
 }
 
