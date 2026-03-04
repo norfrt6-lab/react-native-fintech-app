@@ -31,11 +31,27 @@ jest.mock('../../src/lib/logger', () => ({
   },
 }));
 
+const originalDev = (global as Record<string, unknown>).__DEV__;
+
 beforeEach(() => {
   jest.clearAllMocks();
+  (global as Record<string, unknown>).__DEV__ = false;
+});
+
+afterAll(() => {
+  (global as Record<string, unknown>).__DEV__ = originalDev;
 });
 
 describe('registerForPushNotifications', () => {
+  it('skips registration in dev mode', async () => {
+    (global as Record<string, unknown>).__DEV__ = true;
+
+    const token = await registerForPushNotifications();
+
+    expect(token).toBeNull();
+    expect(mockGetExpoPushToken).not.toHaveBeenCalled();
+  });
+
   it('returns push token when permission granted', async () => {
     mockGetPermissions.mockResolvedValue({ status: 'granted' });
     mockGetExpoPushToken.mockResolvedValue({ data: 'ExponentPushToken[abc123]' });
